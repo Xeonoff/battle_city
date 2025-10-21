@@ -214,6 +214,72 @@
                 font-size: 1rem;
             }
         }
+        /* === Мобильное управление === */
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .joystick {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 204, 0, 0.15);
+            border: 2px solid #ffcc00;
+            border-radius: 50%;
+        }
+
+        .joystick-stick {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 60px;
+            height: 60px;
+            background: #ffcc00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+
+        .fire-button {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff6600, #ff3300);
+            border: 3px solid #ffcc00;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.5);
+            pointer-events: auto;
+            margin-right: 10px;
+        }
+
+        .fire-button:active {
+            transform: scale(0.9);
+        }
+
+        /* Показывать элементы только на мобильных устройствах */
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -714,7 +780,14 @@
                 }
             }
         }
-        
+        class Boost {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILE_SIZE;
+                this.height = TILE_SIZE;
+            }
+        }
         // Класс кустов
         class Bush {
             constructor(x, y) {
@@ -1027,7 +1100,7 @@
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.draw();
             }
-            
+
             // Отрисовка кустов
             gameState.bushes.forEach(bush => {
                 bush.draw();
@@ -1146,6 +1219,77 @@
 
         // Запуск игры при загрузке страницы
         window.addEventListener('load', init);
+        // === Мобильное управление ===
+        const joystick = document.querySelector('.joystick');
+        const stick = document.querySelector('.joystick-stick');
+        const fireButton = document.querySelector('.fire-button');
+
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+
+        joystick.addEventListener('touchstart', (e) => {
+            joystickActive = true;
+            const touch = e.touches[0];
+            joystickStartX = touch.clientX;
+            joystickStartY = touch.clientY;
+        });
+
+        joystick.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - joystickStartX;
+            const dy = touch.clientY - joystickStartY;
+            const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 50); // максимум 50px
+            const angle = Math.atan2(dy, dx);
+
+            const offsetX = Math.cos(angle) * distance;
+            const offsetY = Math.sin(angle) * distance;
+            stick.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+
+            // Определяем направление
+            if (!gameState.player) return;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 10) {
+                    gameState.player.direction = DIRECTIONS.RIGHT;
+                    gameState.player.isMoving = true;
+                } else if (dx < -10) {
+                    gameState.player.direction = DIRECTIONS.LEFT;
+                    gameState.player.isMoving = true;
+                }
+            } else {
+                if (dy > 10) {
+                    gameState.player.direction = DIRECTIONS.DOWN;
+                    gameState.player.isMoving = true;
+                } else if (dy < -10) {
+                    gameState.player.direction = DIRECTIONS.UP;
+                    gameState.player.isMoving = true;
+                }
+            }
+        });
+
+        joystick.addEventListener('touchend', () => {
+            joystickActive = false;
+            stick.style.transform = 'translate(-50%, -50%)';
+            if (gameState.player) {
+                gameState.player.isMoving = false;
+            }
+        });
+
+        // Кнопка огня
+        fireButton.addEventListener('touchstart', () => {
+            if (gameState.player && gameState.player.isActive) {
+                gameState.player.shoot();
+            }
+        });
     </script>
+    <div class="mobile-controls">
+    <div class="joystick">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick"></div>
+    </div>
+    <button class="fire-button">🔥</button>
+</div>
 </body>
 </html>

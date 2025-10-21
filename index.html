@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Танчики DENDY</title>
+    <title>BATTLE CITY</title>
     <style>
         * {
             margin: 0;
@@ -45,6 +45,8 @@
         .game-container {
             position: relative;
             margin: 20px auto;
+            width: 624px;
+            height: 624px;
             border: 4px solid #ffcc00;
             border-radius: 8px;
             overflow: hidden;
@@ -54,6 +56,8 @@
         canvas {
             display: block;
             background-color: #000;
+            width: 100%;
+            height: 100%;
         }
         
         .info-panel {
@@ -190,7 +194,13 @@
             margin-bottom: 8px;
         }
         
-        @media (max-width: 600px) {
+        @media (max-width: 650px) {
+            .game-container {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 1 / 1;
+            }
+            
             .controls {
                 flex-direction: column;
                 gap: 15px;
@@ -208,7 +218,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>ТАНЧИКИ DENDY</h1>
+        <h1>BATTLE CITY</h1>
         <p class="subtitle">Уничтожьте всех вражеских танков и защитите базу!</p>
         
         <div class="info-panel">
@@ -289,7 +299,7 @@
         const TANK_SIZE = 24;
         const BULLET_SIZE = 6;
         const PLAYER_SPEED = 1;
-        const ENEMY_SPEED = 1;
+        const ENEMY_SPEED = 0.5;
         const BULLET_SPEED = 4;
         const MAX_ENEMIES = 20;
         const PLAYER_LIVES = 3;
@@ -300,6 +310,8 @@
             enemies: [],
             bullets: [],
             walls: [],
+            bushes: [],
+            waters: [],
             base: null,
             score: 0,
             lives: PLAYER_LIVES,
@@ -331,6 +343,7 @@
                 this.canShoot = true;
                 this.shootCooldown = 0;
                 this.isActive = true;
+                this.isMoving = false;
             }
 
             update() {
@@ -352,7 +365,12 @@
                     if (Math.random() < 0.02 && this.canShoot) {
                         this.shoot();
                     }
+                    
+                    // Вражеские танки всегда двигаются
+                    this.move();
                 }
+                
+                // Движение игрока обрабатывается в handleInput
             }
 
             move() {
@@ -423,6 +441,20 @@
                     };
 
                     if (this.checkCollision(tankRect, baseRect)) {
+                        return true;
+                    }
+                }
+                
+                // Проверка столкновения с водой
+                for (const water of gameState.waters) {
+                    const waterRect = {
+                        x: water.x,
+                        y: water.y,
+                        width: water.width,
+                        height: water.height
+                    };
+
+                    if (this.checkCollision(tankRect, waterRect)) {
                         return true;
                     }
                 }
@@ -610,7 +642,11 @@
                             gameState.enemyCount++;
                         } else {
                             gameState.lives--;
-                            if (gameState.lives <= 0) {
+                            tank.isActive = false;
+
+                            if (gameState.lives > 0) {
+                                respawnPlayer();
+                            } else {
                                 gameState.gameOver = true;
                                 gameState.gameWon = false;
                             }
@@ -678,6 +714,61 @@
                 }
             }
         }
+        
+        // Класс кустов
+        class Bush {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILE_SIZE;
+                this.height = TILE_SIZE;
+            }
+            
+            draw() {
+                ctx.fillStyle = '#2E8B57';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Рисуем детали кустов
+                ctx.fillStyle = '#3CB371';
+                for (let i = 0; i < this.width; i += 6) {
+                    for (let j = 0; j < this.height; j += 6) {
+                        if ((i + j) % 12 === 0) {
+                            ctx.beginPath();
+                            ctx.arc(this.x + i + 3, this.y + j + 3, 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Класс воды
+        class Water {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILE_SIZE;
+                this.height = TILE_SIZE;
+            }
+            
+            draw() {
+                ctx.fillStyle = '#1E90FF';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Рисуем волны
+                ctx.strokeStyle = '#00BFFF';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < this.width; i += 8) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + i, this.y + this.height / 2);
+                    ctx.quadraticCurveTo(
+                        this.x + i + 4, this.y + this.height / 2 - 3,
+                        this.x + i + 8, this.y + this.height / 2
+                    );
+                    ctx.stroke();
+                }
+            }
+        }
 
         // Класс базы
         class Base {
@@ -742,69 +833,101 @@
             gameState.walls = [];
             gameState.enemies = [];
             gameState.bullets = [];
-            
-            // Создаем границы уровня
+            gameState.bushes = [];
+            gameState.waters = [];
+
+            // === Границы поля ===
             for (let i = 0; i < canvas.width; i += TILE_SIZE) {
-                // Верхняя граница
-                gameState.walls.push(new Wall(i, 0, false));
-                // Нижняя граница
-                gameState.walls.push(new Wall(i, canvas.height - TILE_SIZE, false));
+                gameState.walls.push(new Wall(i, 0, false)); // верх
+                gameState.walls.push(new Wall(i, canvas.height - TILE_SIZE, false)); // низ
             }
-            
             for (let i = TILE_SIZE; i < canvas.height - TILE_SIZE; i += TILE_SIZE) {
-                // Левая граница
-                gameState.walls.push(new Wall(0, i, false));
-                // Правая граница
-                gameState.walls.push(new Wall(canvas.width - TILE_SIZE, i, false));
+                gameState.walls.push(new Wall(0, i, false)); // левая
+                gameState.walls.push(new Wall(canvas.width - TILE_SIZE, i, false)); // правая
             }
-            
-            // Создаем внутренние стены
-            // Кирпичные стены
-            for (let i = 3; i < 8; i++) {
-                for (let j = 3; j < 6; j++) {
+
+            // === БАЗА ===
+            const baseX = canvas.width / 2 - TILE_SIZE;
+            const baseY = canvas.height - TILE_SIZE * 2;
+            gameState.base = new Base(baseX, baseY);
+
+            // === Стены вокруг базы ===
+            // Левая и правая
+            gameState.walls.push(new Wall(baseX - TILE_SIZE, baseY, true));
+            gameState.walls.push(new Wall(baseX + TILE_SIZE * 2, baseY, true));
+
+            // Перед базой (снизу вверх)
+            gameState.walls.push(new Wall(baseX - TILE_SIZE, baseY - TILE_SIZE, true));
+            gameState.walls.push(new Wall(baseX, baseY - TILE_SIZE, true));
+            gameState.walls.push(new Wall(baseX + TILE_SIZE, baseY - TILE_SIZE, true));
+            gameState.walls.push(new Wall(baseX + TILE_SIZE * 2, baseY - TILE_SIZE, true));
+
+            // === Игрок ===
+            gameState.player = new Tank(
+                canvas.width / 2 - TANK_SIZE / 2,
+                canvas.height - TILE_SIZE * 4, // немного выше кирпичей базы
+                DIRECTIONS.UP,
+                true
+            );
+
+            // === Несколько стен и препятствий ===
+            // Центральные кирпичные блоки
+            for (let i = 7; i < 17; i++) {
+                for (let j = 5; j < 7; j++) {
                     gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, true));
                 }
             }
-            
-            for (let i = 16; i < 21; i++) {
-                for (let j = 3; j < 6; j++) {
-                    gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, true));
-                }
-            }
-            
-            for (let i = 8; i < 16; i++) {
-                for (let j = 18; j < 21; j++) {
-                    gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, true));
-                }
-            }
-            
-            // Стальные стены
-            for (let i = 10; i < 14; i++) {
-                for (let j = 8; j < 10; j++) {
+
+            // Стальные блоки ближе к центру
+            for (let i = 9; i < 15; i++) {
+                for (let j = 9; j < 11; j++) {
                     gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, false));
                 }
             }
-            
-            for (let i = 5; i < 7; i++) {
+
+            // Вода слева и справа от центра
+            for (let i = 3; i < 6; i++) {
                 for (let j = 12; j < 15; j++) {
-                    gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, false));
+                    gameState.waters.push(new Water(i * TILE_SIZE, j * TILE_SIZE));
                 }
             }
-            
-            for (let i = 17; i < 19; i++) {
+            for (let i = 18; i < 21; i++) {
                 for (let j = 12; j < 15; j++) {
-                    gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, false));
+                    gameState.waters.push(new Water(i * TILE_SIZE, j * TILE_SIZE));
                 }
             }
-            
-            // Создаем базу
-            gameState.base = new Base(canvas.width / 2 - TILE_SIZE, canvas.height - TILE_SIZE * 2);
-            
-            // Создаем игрока
-            gameState.player = new Tank(canvas.width / 2 - TANK_SIZE / 2, canvas.height - TANK_SIZE - 10, DIRECTIONS.UP, true);
-            
-            // Создаем врагов
+
+            // Кусты в верхней части карты
+            for (let i = 6; i < 10; i++) {
+                for (let j = 2; j < 4; j++) {
+                    gameState.bushes.push(new Bush(i * TILE_SIZE, j * TILE_SIZE));
+                }
+            }
+            for (let i = 14; i < 18; i++) {
+                for (let j = 2; j < 4; j++) {
+                    gameState.bushes.push(new Bush(i * TILE_SIZE, j * TILE_SIZE));
+                }
+            }
+
+            // === Враги ===
             spawnEnemies();
+        }
+
+        function respawnPlayer() {
+            if (gameState.lives > 0) {
+                // Задержка перед респауном (например, 1 секунда)
+                setTimeout(() => {
+                    gameState.player = new Tank(
+                        canvas.width / 2 - TANK_SIZE / 2,
+                        canvas.height - TILE_SIZE * 3 - 4, // чуть выше базы
+                        DIRECTIONS.UP,
+                        true
+                    );
+                }, 1000);
+            } else {
+                gameState.gameOver = true;
+                gameState.gameWon = false;
+            }
         }
 
         // Создание врагов
@@ -831,14 +954,15 @@
             // Обновление игрока
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.update();
-                gameState.player.move();
+                if (gameState.player.isMoving) {
+                    gameState.player.move();
+                }
             }
             
             // Обновление врагов
             gameState.enemies.forEach(enemy => {
                 if (enemy.isActive) {
                     enemy.update();
-                    enemy.move();
                 }
             });
             
@@ -874,6 +998,11 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            // Отрисовка воды
+            gameState.waters.forEach(water => {
+                water.draw();
+            });
+            
             // Отрисовка стен
             gameState.walls.forEach(wall => {
                 wall.draw();
@@ -883,6 +1012,11 @@
             if (gameState.base) {
                 gameState.base.draw();
             }
+            
+            // Отрисовка кустов
+            gameState.bushes.forEach(bush => {
+                bush.draw();
+            });
             
             // Отрисовка пуль
             gameState.bullets.forEach(bullet => {
@@ -926,6 +1060,8 @@
                 enemies: [],
                 bullets: [],
                 walls: [],
+                bushes: [],
+                waters: [],
                 base: null,
                 score: 0,
                 lives: PLAYER_LIVES,
@@ -959,6 +1095,12 @@
 
         window.addEventListener('keyup', (e) => {
             keys[e.key] = false;
+            
+            // Остановка движения игрока при отпускании клавиш
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                gameState.player.isMoving = false;
+                console.log("stop");
+            }
         });
 
         function handleInput() {
@@ -966,16 +1108,20 @@
             
             if (keys['ArrowUp']) {
                 gameState.player.direction = DIRECTIONS.UP;
-                gameState.player.move();
+                gameState.player.isMoving = true;
+                console.log("moving");
             } else if (keys['ArrowRight']) {
                 gameState.player.direction = DIRECTIONS.RIGHT;
-                gameState.player.move();
+                gameState.player.isMoving = true;
+                console.log("moving");
             } else if (keys['ArrowDown']) {
                 gameState.player.direction = DIRECTIONS.DOWN;
-                gameState.player.move();
+                gameState.player.isMoving = true;
+                console.log("moving");
             } else if (keys['ArrowLeft']) {
                 gameState.player.direction = DIRECTIONS.LEFT;
-                gameState.player.move();
+                gameState.player.isMoving = true;
+                console.log("moving");
             }
         }
 

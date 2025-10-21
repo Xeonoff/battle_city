@@ -725,8 +725,6 @@
             }
             
             draw() {
-                ctx.fillStyle = '#2E8B57';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
                 
                 // Рисуем детали кустов
                 ctx.fillStyle = '#3CB371';
@@ -1088,7 +1086,7 @@
             }
             
             // Предотвращение прокрутки страницы при использовании стрелок
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
                 e.preventDefault();
             }
         });
@@ -1097,7 +1095,7 @@
             keys[e.key] = false;
             
             // Остановка движения игрока при отпускании клавиш
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 gameState.player.isMoving = false;
                 console.log("stop");
             }
@@ -1106,19 +1104,19 @@
         function handleInput() {
             if (!gameState.player || !gameState.player.isActive) return;
             
-            if (keys['ArrowUp']) {
+            if (keys['ArrowUp'] || keys['w']) {
                 gameState.player.direction = DIRECTIONS.UP;
                 gameState.player.isMoving = true;
                 console.log("moving");
-            } else if (keys['ArrowRight']) {
+            } else if (keys['ArrowRight'] || keys['d']) {
                 gameState.player.direction = DIRECTIONS.RIGHT;
                 gameState.player.isMoving = true;
                 console.log("moving");
-            } else if (keys['ArrowDown']) {
+            } else if (keys['ArrowDown'] || keys['s']) {
                 gameState.player.direction = DIRECTIONS.DOWN;
                 gameState.player.isMoving = true;
                 console.log("moving");
-            } else if (keys['ArrowLeft']) {
+            } else if (keys['ArrowLeft'] || keys['a']) {
                 gameState.player.direction = DIRECTIONS.LEFT;
                 gameState.player.isMoving = true;
                 console.log("moving");

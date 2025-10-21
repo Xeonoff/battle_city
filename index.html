@@ -1011,10 +1011,7 @@
                 gameState.base.draw();
             }
             
-            // Отрисовка кустов
-            gameState.bushes.forEach(bush => {
-                bush.draw();
-            });
+            
             
             // Отрисовка пуль
             gameState.bullets.forEach(bullet => {
@@ -1030,6 +1027,11 @@
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.draw();
             }
+            
+            // Отрисовка кустов
+            gameState.bushes.forEach(bush => {
+                bush.draw();
+            });
         }
 
         // Обновление интерфейса

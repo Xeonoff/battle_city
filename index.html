@@ -21,6 +21,8 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
+            touch-action: none;
+            overflow: hidden;
         }
         
         .container {
@@ -267,6 +269,9 @@
             box-shadow: 0 0 20px rgba(255, 102, 0, 0.5);
             pointer-events: auto;
             margin-right: 10px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         .fire-button:active {
@@ -347,6 +352,15 @@
         </div>
     </div>
 
+    <!-- Мобильное управление -->
+    <div class="mobile-controls">
+        <div class="joystick">
+            <div class="joystick-base"></div>
+            <div class="joystick-stick"></div>
+        </div>
+        <button class="fire-button">🔥</button>
+    </div>
+
     <script>
         // Получаем элементы DOM
         const canvas = document.getElementById('gameCanvas');
@@ -359,6 +373,11 @@
         const gameOverMessage = document.getElementById('gameOverMessage');
         const restartButton = document.getElementById('restartButton');
         const enemiesCount = document.getElementById('enemies-count');
+
+        // Элементы мобильного управления
+        const joystick = document.querySelector('.joystick');
+        const stick = document.querySelector('.joystick-stick');
+        const fireButton = document.querySelector('.fire-button');
 
         // Константы игры
         const TILE_SIZE = 26;
@@ -394,6 +413,12 @@
             DOWN: 2,
             LEFT: 3
         };
+
+        // Переменные для мобильного управления
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+        let joystickBaseRect = null;
 
         // Класс танка
         class Tank {
@@ -794,14 +819,7 @@
                 }
             }
         }
-        class Boost {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.width = TILE_SIZE;
-                this.height = TILE_SIZE;
-            }
-        }
+
         // Класс кустов
         class Bush {
             constructor(x, y) {
@@ -812,7 +830,6 @@
             }
             
             draw() {
-                
                 // Рисуем детали кустов
                 ctx.fillStyle = '#3CB371';
                 for (let i = 0; i < this.width; i += 6) {
@@ -1098,8 +1115,6 @@
                 gameState.base.draw();
             }
             
-            
-            
             // Отрисовка пуль
             gameState.bullets.forEach(bullet => {
                 bullet.draw();
@@ -1186,7 +1201,6 @@
             // Остановка движения игрока при отпускании клавиш
             if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 gameState.player.isMoving = false;
-                console.log("stop");
             }
         });
 
@@ -1196,19 +1210,15 @@
             if (keys['ArrowUp'] || keys['w']) {
                 gameState.player.direction = DIRECTIONS.UP;
                 gameState.player.isMoving = true;
-                console.log("moving");
             } else if (keys['ArrowRight'] || keys['d']) {
                 gameState.player.direction = DIRECTIONS.RIGHT;
                 gameState.player.isMoving = true;
-                console.log("moving");
             } else if (keys['ArrowDown'] || keys['s']) {
                 gameState.player.direction = DIRECTIONS.DOWN;
                 gameState.player.isMoving = true;
-                console.log("moving");
             } else if (keys['ArrowLeft'] || keys['a']) {
                 gameState.player.direction = DIRECTIONS.LEFT;
                 gameState.player.isMoving = true;
-                console.log("moving");
             }
         }
 
@@ -1222,9 +1232,102 @@
             }
         }
 
+        // === Мобильное управление ===
+        function initMobileControls() {
+            // Получаем координаты базового элемента джойстика
+            joystickBaseRect = joystick.getBoundingClientRect();
+            const joystickCenterX = joystickBaseRect.left + joystickBaseRect.width / 2;
+            const joystickCenterY = joystickBaseRect.top + joystickBaseRect.height / 2;
+            
+            // Обработка начала касания джойстика
+            joystick.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                const touch = e.touches[0];
+                joystickStartX = touch.clientX;
+                joystickStartY = touch.clientY;
+            });
+
+            // Обработка движения касания джойстика
+            joystick.addEventListener('touchmove', (e) => {
+                if (!joystickActive) return;
+                
+                e.preventDefault();
+                const touch = e.touches[0];
+                const dx = touch.clientX - joystickStartX;
+                const dy = touch.clientY - joystickStartY;
+                
+                // Ограничиваем перемещение стика радиусом джойстика
+                const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 30);
+                const angle = Math.atan2(dy, dx);
+                
+                const offsetX = Math.cos(angle) * distance;
+                const offsetY = Math.sin(angle) * distance;
+                
+                stick.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)`;
+                
+                // Определяем направление движения
+                if (!gameState.player || !gameState.player.isActive) return;
+                
+                const deadZone = 10; // Мертвая зона для предотвращения случайных движений
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Горизонтальное движение
+                    if (dx > deadZone) {
+                        gameState.player.direction = DIRECTIONS.RIGHT;
+                        gameState.player.isMoving = true;
+                    } else if (dx < -deadZone) {
+                        gameState.player.direction = DIRECTIONS.LEFT;
+                        gameState.player.isMoving = true;
+                    }
+                } else {
+                    // Вертикальное движение
+                    if (dy > deadZone) {
+                        gameState.player.direction = DIRECTIONS.DOWN;
+                        gameState.player.isMoving = true;
+                    } else if (dy < -deadZone) {
+                        gameState.player.direction = DIRECTIONS.UP;
+                        gameState.player.isMoving = true;
+                    }
+                }
+            });
+
+            // Обработка окончания касания джойстика
+            joystick.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                stick.style.transform = 'translate(-50%, -50%)';
+                if (gameState.player) {
+                    gameState.player.isMoving = false;
+                }
+            });
+
+            joystick.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                stick.style.transform = 'translate(-50%, -50%)';
+                if (gameState.player) {
+                    gameState.player.isMoving = false;
+                }
+            });
+
+            // Кнопка огня
+            fireButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameState.player && gameState.player.isActive) {
+                    gameState.player.shoot();
+                }
+            });
+
+            fireButton.addEventListener('touchend', (e) => {
+                e.preventDefault();
+            });
+        }
+
         // Инициализация игры
         function init() {
             createLevel();
+            initMobileControls();
             gameLoop();
             
             // Обработка кнопки перезапуска
@@ -1233,83 +1336,6 @@
 
         // Запуск игры при загрузке страницы
         window.addEventListener('load', init);
-        // === Мобильное управление ===
-        const joystick = document.querySelector('.joystick');
-        const stick = document.querySelector('.joystick-stick');
-        const fireButton = document.querySelector('.fire-button');
-
-        let joystickActive = false;
-        let joystickStartX = 0;
-        let joystickStartY = 0;
-        window.on('dblclick', '*', function(e){  
-            alert('dbclick prevented');
-                e.preventDefault();
-
-            });
-        joystick.addEventListener('touchstart', (e) => {
-            joystickActive = true;
-            const touch = e.touches[0];
-            joystickStartX = touch.clientX;
-            joystickStartY = touch.clientY;
-        });
-
-        joystick.addEventListener('touchmove', (e) => {
-            if (!joystickActive) return;
-            console.log("joystick active");
-            const touch = e.touches[0];
-            const dx = touch.clientX - joystickStartX;
-            const dy = touch.clientY - joystickStartY;
-            const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 50); // максимум 50px
-            const angle = Math.atan2(dy, dx);
-
-            const offsetX = Math.cos(angle) * distance;
-            const offsetY = Math.sin(angle) * distance;
-            stick.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
-
-            // Определяем направление
-            if (!gameState.player) return;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 10) {
-                    gameState.player.direction = DIRECTIONS.RIGHT;
-                    gameState.player.isMoving = true;
-                } else if (dx < -10) {
-                    gameState.player.direction = DIRECTIONS.LEFT;
-                    gameState.player.isMoving = true;
-                }
-            } else {
-                if (dy > 10) {
-                    gameState.player.direction = DIRECTIONS.DOWN;
-                    gameState.player.isMoving = true;
-                } else if (dy < -10) {
-                    gameState.player.direction = DIRECTIONS.UP;
-                    gameState.player.isMoving = true;
-                }
-            }
-        });
-
-        joystick.addEventListener('touchend', () => {
-            joystickActive = false;
-            stick.style.transform = 'translate(-50%, -50%)';
-            if (gameState.player) {
-                gameState.player.isMoving = false;
-            }
-        });
-
-        // Кнопка огня
-        fireButton.addEventListener('touchstart', () => {
-            if (gameState.player && gameState.player.isActive) {
-                gameState.player.shoot();
-                console.log("boom");
-            }
-        });
     </script>
-    <div class="mobile-controls">
-    <div class="joystick">
-        <div class="joystick-base"></div>
-        <div class="joystick-stick"></div>
-    </div>
-    <button class="fire-button">🔥</button>
-</div>
 </body>
 </html>

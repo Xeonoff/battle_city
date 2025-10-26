@@ -216,6 +216,7 @@
                 font-size: 1rem;
             }
         }
+        
         /* === Мобильное управление === */
         .mobile-controls {
             position: fixed;
@@ -285,6 +286,65 @@
             }
         }
 
+        /* === Комментарии командира === */
+        .commander-comment {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffcc00;
+            border-radius: 10px;
+            padding: 15px 20px;
+            max-width: 80%;
+            z-index: 200;
+            display: none;
+            animation: fadeInOut 5s ease-in-out;
+        }
+
+        .commander-comment.show {
+            display: block;
+        }
+
+        .commander-comment p {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #ffcc00;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .commander-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ffcc00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 1.5rem;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        /* Адаптивность для комментариев */
+        @media (max-width: 768px) {
+            .commander-comment {
+                top: 10px;
+                max-width: 90%;
+                padding: 10px 15px;
+            }
+            
+            .commander-comment p {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -361,6 +421,12 @@
         <button class="fire-button">🔥</button>
     </div>
 
+    <!-- Комментарии командира -->
+    <div class="commander-comment" id="commanderComment">
+        <div class="commander-avatar">⚔️</div>
+        <p id="commentText">Командир: Держитесь, солдаты!</p>
+    </div>
+
     <script>
         // Получаем элементы DOM
         const canvas = document.getElementById('gameCanvas');
@@ -373,6 +439,8 @@
         const gameOverMessage = document.getElementById('gameOverMessage');
         const restartButton = document.getElementById('restartButton');
         const enemiesCount = document.getElementById('enemies-count');
+        const commanderComment = document.getElementById('commanderComment');
+        const commentText = document.getElementById('commentText');
 
         // Элементы мобильного управления
         const joystick = document.querySelector('.joystick');
@@ -403,7 +471,9 @@
             level: 1,
             enemyCount: 0,
             gameOver: false,
-            gameWon: false
+            gameWon: false,
+            lastCommentTime: 0,
+            commentCooldown: 10000 // 10 секунд
         };
 
         // Направления
@@ -419,6 +489,9 @@
         let joystickStartX = 0;
         let joystickStartY = 0;
         let joystickBaseRect = null;
+
+        // API endpoint
+        const LLM_API_URL = 'https://battlecityllmserver.onrender.com/generate';
 
         // Класс танка
         class Tank {
@@ -460,8 +533,6 @@
                     // Вражеские танки всегда двигаются
                     this.move();
                 }
-                
-                // Движение игрока обрабатывается в handleInput
             }
 
             move() {
@@ -1092,6 +1163,9 @@
             
             // Обновление UI
             updateUI();
+            
+            // Проверка времени для комментария командира
+            checkForCommanderComment();
         }
 
         // Отрисовка игры
@@ -1170,7 +1244,9 @@
                 level: 1,
                 enemyCount: 0,
                 gameOver: false,
-                gameWon: false
+                gameWon: false,
+                lastCommentTime: 0,
+                commentCooldown: 20000
             };
             
             gameOverScreen.style.display = 'none';
@@ -1222,14 +1298,94 @@
             }
         }
 
-        // Игровой цикл
-        function gameLoop() {
-            if (!gameState.gameOver) {
-                handleInput();
-                update();
-                draw();
-                requestAnimationFrame(gameLoop);
+        // === Функции для комментариев командира ===
+        
+        // Проверка времени для отправки комментария
+        function checkForCommanderComment() {
+            const currentTime = Date.now();
+            if (currentTime - gameState.lastCommentTime > gameState.commentCooldown) {
+                gameState.lastCommentTime = currentTime;
+                sendGameStateToLLM();
             }
+        }
+
+        // Отправка состояния игры на LLM API
+        async function sendGameStateToLLM() {
+            try {
+                // Формируем состояние игры для промта
+                const gameStateForPrompt = {
+                    destroyedTanks: gameState.enemyCount,
+                    remainingTanks: MAX_ENEMIES - gameState.enemyCount,
+                    playerLives: gameState.lives,
+                    playerScore: gameState.score,
+                    playerPosition: gameState.player ? {
+                        x: Math.round(gameState.player.x),
+                        y: Math.round(gameState.player.y),
+                        direction: gameState.player.direction
+                    } : null,
+                    activeEnemies: gameState.enemies.length,
+                    baseStatus: gameState.base ? (gameState.base.isDestroyed ? "destroyed" : "protected") : "unknown",
+                    gameStatus: gameState.gameOver ? (gameState.gameWon ? "won" : "lost") : "in_progress"
+                };
+
+                // Создаем промт для LLM
+                const prompt = `Ты командир танкового подразделения в игре Battle City. Ты наблюдаешь за ходом битвы и даешь краткие, мотивирующие комментарии своему экипажу.
+
+Текущее состояние битвы:
+- Уничтожено вражеских танков: ${gameStateForPrompt.destroyedTanks}/20
+- Осталось врагов: ${gameStateForPrompt.remainingTanks}
+- Жизней у игрока: ${gameStateForPrompt.playerLives}
+- Счет: ${gameStateForPrompt.playerScore}
+- Активных врагов на поле: ${gameStateForPrompt.activeEnemies}
+- Статус базы: ${gameStateForPrompt.baseStatus}
+- Статус игры: ${gameStateForPrompt.gameStatus}
+
+Дай краткий, энергичный комментарий (максимум 2 предложения) как опытный командир. Будь мотивирующим, тактичным и соответствующим текущей ситуации.`;
+
+                // Отправляем запрос на API
+                const response = await fetch(LLM_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(data);
+                // Отображаем комментарий
+                if (data.response) {
+                    showCommanderComment(data.response);
+                }
+                
+            } catch (error) {
+                console.error('Ошибка при получении комментария от LLM:', error);
+                // Показываем запасной комментарий в случае ошибки
+                const fallbackComments = [
+                    "Держите строй! Защищайте базу!",
+                    "Враги приближаются! Будьте наготове!",
+                    "Отличная работа! Продолжайте в том же духе!",
+                    "Не подводите! База должна быть защищена!",
+                    "Сосредоточьтесь! Победа близка!"
+                ];
+                const randomComment = fallbackComments[Math.floor(Math.random() * fallbackComments.length)];
+                showCommanderComment(randomComment);
+            }
+        }
+
+        // Показать комментарий командира
+        function showCommanderComment(comment) {
+            commentText.textContent = `Командир: ${comment}`;
+            commanderComment.classList.add('show');
+            
+            // Автоматически скрываем комментарий через 5 секунд
+            setTimeout(() => {
+                commanderComment.classList.remove('show');
+            }, 5000);
         }
 
         // === Мобильное управление ===
@@ -1324,6 +1480,16 @@
             });
         }
 
+        // Игровой цикл
+        function gameLoop() {
+            if (!gameState.gameOver) {
+                handleInput();
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
         // Инициализация игры
         function init() {
             createLevel();
@@ -1332,6 +1498,11 @@
             
             // Обработка кнопки перезапуска
             restartButton.addEventListener('click', restartGame);
+            
+            // Первый комментарий командира
+            setTimeout(() => {
+                showCommanderComment("Внимание! Защитите базу от вражеских танков!");
+            }, 1000);
         }
 
         // Запуск игры при загрузке страницы

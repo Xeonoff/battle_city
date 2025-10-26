@@ -1246,7 +1246,7 @@
                 gameOver: false,
                 gameWon: false,
                 lastCommentTime: 0,
-                commentCooldown: 20000
+                commentCooldown: 25000
             };
             
             gameOverScreen.style.display = 'none';
@@ -1385,7 +1385,7 @@
             // Автоматически скрываем комментарий через 5 секунд
             setTimeout(() => {
                 commanderComment.classList.remove('show');
-            }, 5000);
+            }, 10000);
         }
 
         // === Мобильное управление ===

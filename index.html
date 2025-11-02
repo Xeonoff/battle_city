@@ -217,7 +217,7 @@
             }
         }
         
-        /* === Мобильное управление === */
+
         .mobile-controls {
             position: fixed;
             bottom: 20px;
@@ -279,14 +279,12 @@
             transform: scale(0.9);
         }
 
-        /* Показывать элементы только на мобильных устройствах */
         @media (max-width: 768px) {
             .mobile-controls {
                 display: flex;
             }
         }
 
-        /* === Комментарии командира === */
         .commander-comment {
             position: fixed;
             top: 20px;
@@ -332,8 +330,6 @@
             90% { opacity: 1; transform: translateX(-50%) translateY(0); }
             100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
         }
-
-        /* Адаптивность для комментариев */
         @media (max-width: 768px) {
             .commander-comment {
                 top: 10px;
@@ -412,7 +408,6 @@
         </div>
     </div>
 
-    <!-- Мобильное управление -->
     <div class="mobile-controls">
         <div class="joystick">
             <div class="joystick-base"></div>
@@ -421,14 +416,12 @@
         <button class="fire-button">🔥</button>
     </div>
 
-    <!-- Комментарии командира -->
     <div class="commander-comment" id="commanderComment">
         <div class="commander-avatar">⚔️</div>
         <p id="commentText">Командир: Держитесь, солдаты!</p>
     </div>
 
     <script>
-        // Получаем элементы DOM
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const tanksCounter = document.getElementById('tanks-counter');
@@ -442,12 +435,10 @@
         const commanderComment = document.getElementById('commanderComment');
         const commentText = document.getElementById('commentText');
 
-        // Элементы мобильного управления
         const joystick = document.querySelector('.joystick');
         const stick = document.querySelector('.joystick-stick');
         const fireButton = document.querySelector('.fire-button');
 
-        // Константы игры
         const TILE_SIZE = 26;
         const TANK_SIZE = 24;
         const BULLET_SIZE = 6;
@@ -457,7 +448,6 @@
         const MAX_ENEMIES = 20;
         const PLAYER_LIVES = 3;
 
-        // Состояние игры
         let gameState = {
             player: null,
             enemies: [],
@@ -473,10 +463,9 @@
             gameOver: false,
             gameWon: false,
             lastCommentTime: 0,
-            commentCooldown: 20000 // 10 секунд
+            commentCooldown: 20000 // 20 секунд
         };
 
-        // Направления
         const DIRECTIONS = {
             UP: 0,
             RIGHT: 1,
@@ -484,16 +473,13 @@
             LEFT: 3
         };
 
-        // Переменные для мобильного управления
         let joystickActive = false;
         let joystickStartX = 0;
         let joystickStartY = 0;
         let joystickBaseRect = null;
 
-        // API endpoint
         const LLM_API_URL = 'https://battlecityllmserver.onrender.com/generate';
 
-        // Класс танка
         class Tank {
             constructor(x, y, direction, isPlayer = false) {
                 this.x = x;
@@ -511,26 +497,21 @@
             }
 
             update() {
-                // Обработка перезарядки
                 if (this.shootCooldown > 0) {
                     this.shootCooldown--;
                 } else {
                     this.canShoot = true;
                 }
 
-                // Движение вражеских танков
                 if (!this.isPlayer && this.isActive) {
-                    // Случайное изменение направления
                     if (Math.random() < 0.01) {
                         this.direction = Math.floor(Math.random() * 4);
                     }
 
-                    // Случайный выстрел
                     if (Math.random() < 0.02 && this.canShoot) {
                         this.shoot();
                     }
                     
-                    // Вражеские танки всегда двигаются
                     this.move();
                 }
             }
@@ -554,18 +535,14 @@
                         break;
                 }
 
-                // Проверка столкновений со стенами
                 if (!this.checkWallCollision(newX, newY)) {
                     this.x = newX;
                     this.y = newY;
                 } else {
-                    // Если столкнулись со стеной, изменить направление (для врагов)
                     if (!this.isPlayer) {
                         this.direction = Math.floor(Math.random() * 4);
                     }
                 }
-
-                // Ограничение движения в пределах поля
                 this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
                 this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
             }
@@ -666,7 +643,6 @@
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x, this.y, this.width, this.height);
 
-                // Рисуем пушку танка
                 ctx.fillStyle = '#333';
                 switch (this.direction) {
                     case DIRECTIONS.UP:
@@ -683,7 +659,6 @@
                         break;
                 }
 
-                // Рисуем детали танка
                 ctx.fillStyle = this.isPlayer ? '#2E7D32' : '#D32F2F';
                 ctx.fillRect(this.x + 4, this.y + 4, this.width - 8, this.height - 8);
             }
@@ -718,13 +693,10 @@
                         break;
                 }
 
-                // Проверка выхода за границы поля
                 if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
                     this.isActive = false;
                     return;
                 }
-
-                // Проверка столкновения со стенами
                 for (const wall of gameState.walls) {
                     if (wall.isDestroyed == 2) continue;
 
@@ -751,7 +723,6 @@
                     }
                 }
 
-                // Проверка столкновения с базой
                 if (gameState.base && !gameState.base.isDestroyed) {
                     const baseRect = {
                         x: gameState.base.x,
@@ -775,8 +746,6 @@
                         return;
                     }
                 }
-
-                // Проверка столкновения с танками
                 const tanks = this.isPlayer ? gameState.enemies : [gameState.player];
                 for (const tank of tanks) {
                     if (!tank || !tank.isActive) continue;
@@ -848,7 +817,6 @@
                 if (this.isDestroyed == 2) return;
 
                 if (this.isDestructible) {
-                    // Кирпичная стена
                     if (this.isDestroyed == 0){
                         ctx.fillStyle = '#8B4513';
                         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -875,7 +843,6 @@
                         }
                     }
                 } else {
-                    // Стальная стена
                     ctx.fillStyle = '#696969';
                     ctx.fillRect(this.x, this.y, this.width, this.height);
                     
@@ -901,7 +868,6 @@
             }
             
             draw() {
-                // Рисуем детали кустов
                 ctx.fillStyle = '#3CB371';
                 for (let i = 0; i < this.width; i += 6) {
                     for (let j = 0; j < this.height; j += 6) {
@@ -928,7 +894,6 @@
                 ctx.fillStyle = '#1E90FF';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
                 
-                // Рисуем волны
                 ctx.strokeStyle = '#00BFFF';
                 ctx.lineWidth = 2;
                 for (let i = 0; i < this.width; i += 8) {
@@ -955,7 +920,6 @@
 
             draw() {
                 if (this.isDestroyed) {
-                    // Рисуем разрушенную базу
                     ctx.fillStyle = '#FF5252';
                     ctx.fillRect(this.x, this.y, this.width, this.height);
                     
@@ -967,11 +931,9 @@
                     ctx.lineTo(this.x, this.y + this.height);
                     ctx.stroke();
                 } else {
-                    // Рисуем базу (орла)
                     ctx.fillStyle = '#FFD700';
                     ctx.fillRect(this.x, this.y, this.width, this.height);
                     
-                    // Рисуем орла
                     ctx.fillStyle = '#8B4513';
                     ctx.beginPath();
                     ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/3, 0, Math.PI * 2);
@@ -982,7 +944,6 @@
                     ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/4, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Клюв
                     ctx.fillStyle = '#FF8C00';
                     ctx.beginPath();
                     ctx.moveTo(this.x + this.width/2, this.y + this.height/2);
@@ -991,7 +952,6 @@
                     ctx.closePath();
                     ctx.fill();
                     
-                    // Глаза
                     ctx.fillStyle = '#000';
                     ctx.beginPath();
                     ctx.arc(this.x + this.width/2 - 3, this.y + this.height/2 - 2, 2, 0, Math.PI * 2);
@@ -1009,56 +969,46 @@
             gameState.bushes = [];
             gameState.waters = [];
 
-            // === Границы поля ===
             for (let i = 0; i < canvas.width; i += TILE_SIZE) {
-                gameState.walls.push(new Wall(i, 0, false)); // верх
-                gameState.walls.push(new Wall(i, canvas.height - TILE_SIZE, false)); // низ
+                gameState.walls.push(new Wall(i, 0, false));
+                gameState.walls.push(new Wall(i, canvas.height - TILE_SIZE, false)); 
             }
             for (let i = TILE_SIZE; i < canvas.height - TILE_SIZE; i += TILE_SIZE) {
-                gameState.walls.push(new Wall(0, i, false)); // левая
-                gameState.walls.push(new Wall(canvas.width - TILE_SIZE, i, false)); // правая
+                gameState.walls.push(new Wall(0, i, false)); 
+                gameState.walls.push(new Wall(canvas.width - TILE_SIZE, i, false));
             }
 
-            // === БАЗА ===
             const baseX = canvas.width / 2 - TILE_SIZE;
             const baseY = canvas.height - TILE_SIZE * 2;
             gameState.base = new Base(baseX, baseY);
 
-            // === Стены вокруг базы ===
-            // Левая и правая
             gameState.walls.push(new Wall(baseX - TILE_SIZE, baseY, true));
             gameState.walls.push(new Wall(baseX + TILE_SIZE * 2, baseY, true));
 
-            // Перед базой (снизу вверх)
             gameState.walls.push(new Wall(baseX - TILE_SIZE, baseY - TILE_SIZE, true));
             gameState.walls.push(new Wall(baseX, baseY - TILE_SIZE, true));
             gameState.walls.push(new Wall(baseX + TILE_SIZE, baseY - TILE_SIZE, true));
             gameState.walls.push(new Wall(baseX + TILE_SIZE * 2, baseY - TILE_SIZE, true));
 
-            // === Игрок ===
             gameState.player = new Tank(
                 canvas.width / 2 - TANK_SIZE / 2,
-                canvas.height - TILE_SIZE * 4, // немного выше кирпичей базы
+                canvas.height - TILE_SIZE * 4,
                 DIRECTIONS.UP,
                 true
             );
 
-            // === Несколько стен и препятствий ===
-            // Центральные кирпичные блоки
             for (let i = 7; i < 17; i++) {
                 for (let j = 5; j < 7; j++) {
                     gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, true));
                 }
             }
 
-            // Стальные блоки ближе к центру
             for (let i = 9; i < 15; i++) {
                 for (let j = 9; j < 11; j++) {
                     gameState.walls.push(new Wall(i * TILE_SIZE, j * TILE_SIZE, false));
                 }
             }
 
-            // Вода слева и справа от центра
             for (let i = 0; i < 6; i++) {
                 for (let j = 12; j < 15; j++) {
                     gameState.waters.push(new Water(i * TILE_SIZE, j * TILE_SIZE));
@@ -1070,7 +1020,6 @@
                 }
             }
 
-            // Кусты в верхней части карты
             for (let i = 6; i < 10; i++) {
                 for (let j = 2; j < 4; j++) {
                     gameState.bushes.push(new Bush(i * TILE_SIZE, j * TILE_SIZE));
@@ -1082,17 +1031,15 @@
                 }
             }
 
-            // === Враги ===
             spawnEnemies();
         }
 
         function respawnPlayer() {
             if (gameState.lives > 0) {
-                // Задержка перед респауном (например, 1 секунда)
                 setTimeout(() => {
                     gameState.player = new Tank(
                         canvas.width / 2 - TANK_SIZE / 2,
-                        canvas.height - TILE_SIZE * 4, // немного выше кирпичей базы
+                        canvas.height - TILE_SIZE * 4,
                         DIRECTIONS.UP,
                         true
                     );
@@ -1103,7 +1050,6 @@
             }
         }
 
-        // Создание врагов
         function spawnEnemies() {
             const spawnPoints = [
                 {x: 2 * TILE_SIZE, y: 2 * TILE_SIZE},
@@ -1117,100 +1063,82 @@
             }
         }
 
-        // Обновление игры
         function update() {
             if (gameState.gameOver) {
                 showGameOver();
                 return;
             }
-            
-            // Обновление игрока
+
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.update();
                 if (gameState.player.isMoving) {
                     gameState.player.move();
                 }
             }
-            
-            // Обновление врагов
+
             gameState.enemies.forEach(enemy => {
                 if (enemy.isActive) {
                     enemy.update();
                 }
             });
-            
-            // Обновление пуль
+
             gameState.bullets.forEach(bullet => {
                 bullet.update();
             });
-            
-            // Удаление неактивных пуль
+
             gameState.bullets = gameState.bullets.filter(bullet => bullet.isActive);
-            
-            // Удаление уничтоженных врагов
+
             gameState.enemies = gameState.enemies.filter(enemy => enemy.isActive);
-            
-            // Спавн новых врагов, если нужно
+
             if (gameState.enemies.length < 3 && gameState.enemyCount < MAX_ENEMIES) {
                 spawnEnemies();
             }
-            
-            // Проверка победы
+
             if (gameState.enemyCount >= MAX_ENEMIES) {
                 gameState.gameOver = true;
                 gameState.gameWon = true;
             }
-            
-            // Обновление UI
+
             updateUI();
-            
-            // Проверка времени для комментария командира
+
             checkForCommanderComment();
         }
 
-        // Отрисовка игры
+
         function draw() {
-            // Очистка холста
+
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Отрисовка воды
+
             gameState.waters.forEach(water => {
                 water.draw();
             });
-            
-            // Отрисовка стен
+
             gameState.walls.forEach(wall => {
                 wall.draw();
             });
-            
-            // Отрисовка базы
+
             if (gameState.base) {
                 gameState.base.draw();
             }
-            
-            // Отрисовка пуль
+
             gameState.bullets.forEach(bullet => {
                 bullet.draw();
             });
-            
-            // Отрисовка врагов
+
             gameState.enemies.forEach(enemy => {
                 enemy.draw();
             });
-            
-            // Отрисовка игрока
+
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.draw();
             }
 
-            // Отрисовка кустов
             gameState.bushes.forEach(bush => {
                 bush.draw();
             });
         }
 
-        // Обновление интерфейса
         function updateUI() {
             tanksCounter.textContent = `${gameState.enemyCount}/${MAX_ENEMIES}`;
             livesCounter.textContent = gameState.lives;
@@ -1219,7 +1147,6 @@
             enemiesCount.textContent = MAX_ENEMIES;
         }
 
-        // Показать экран завершения игры
         function showGameOver() {
             if (gameState.gameWon) {
                 gameOverMessage.textContent = "Поздравляем! Вы победили!";
@@ -1229,7 +1156,6 @@
             gameOverScreen.style.display = 'flex';
         }
 
-        // Перезапуск игры
         function restartGame() {
             gameState = {
                 player: null,
@@ -1254,18 +1180,15 @@
             gameLoop();
         }
 
-        // Обработка управления
         const keys = {};
 
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
-            
-            // Стрельба
+
             if (e.key === ' ' && gameState.player && gameState.player.isActive) {
                 gameState.player.shoot();
             }
-            
-            // Предотвращение прокрутки страницы при использовании стрелок
+
             if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
                 e.preventDefault();
             }
@@ -1273,8 +1196,7 @@
 
         window.addEventListener('keyup', (e) => {
             keys[e.key] = false;
-            
-            // Остановка движения игрока при отпускании клавиш
+
             if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 gameState.player.isMoving = false;
             }
@@ -1298,9 +1220,6 @@
             }
         }
 
-        // === Функции для комментариев командира ===
-        
-        // Проверка времени для отправки комментария
         function checkForCommanderComment() {
             const currentTime = Date.now();
             if (currentTime - gameState.lastCommentTime > gameState.commentCooldown) {
@@ -1309,10 +1228,8 @@
             }
         }
 
-        // Отправка состояния игры на LLM API
         async function sendGameStateToLLM() {
             try {
-                // Формируем состояние игры для промта
                 const gameStateForPrompt = {
                     destroyedTanks: gameState.enemyCount,
                     remainingTanks: MAX_ENEMIES - gameState.enemyCount,
@@ -1328,9 +1245,7 @@
                     gameStatus: gameState.gameOver ? (gameState.gameWon ? "won" : "lost") : "in_progress"
                 };
 
-                // Создаем промт для LLM
                 const prompt = `Ты командир танкового подразделения в игре Battle City. Ты наблюдаешь за ходом битвы и даешь краткие, мотивирующие комментарии своему экипажу.
-
 Текущее состояние битвы:
 - Уничтожено вражеских танков: ${gameStateForPrompt.destroyedTanks}/20
 - Осталось врагов: ${gameStateForPrompt.remainingTanks}
@@ -1342,7 +1257,6 @@
 
 Дай краткий, энергичный комментарий (максимум 2 предложения) как опытный командир. Будь объектинвым но критичным, тактичным и соответствующим текущей ситуации.`;
 
-                // Отправляем запрос на API
                 const response = await fetch(LLM_API_URL, {
                     method: 'POST',
                     headers: {
@@ -1357,14 +1271,12 @@
 
                 const data = await response.json();
                 console.log(data);
-                // Отображаем комментарий
                 if (data.response) {
                     showCommanderComment(data.response);
                 }
                 
             } catch (error) {
                 console.error('Ошибка при получении комментария от LLM:', error);
-                // Показываем запасной комментарий в случае ошибки
                 const fallbackComments = [
                     "Держите строй! Защищайте базу!",
                     "Враги приближаются! Будьте наготове!",
@@ -1377,25 +1289,21 @@
             }
         }
 
-        // Показать комментарий командира
+
         function showCommanderComment(comment) {
             commentText.textContent = `Командир: ${comment}`;
             commanderComment.classList.add('show');
             
-            // Автоматически скрываем комментарий через 5 секунд
             setTimeout(() => {
                 commanderComment.classList.remove('show');
             }, 10000);
         }
 
-        // === Мобильное управление ===
         function initMobileControls() {
-            // Получаем координаты базового элемента джойстика
             joystickBaseRect = joystick.getBoundingClientRect();
             const joystickCenterX = joystickBaseRect.left + joystickBaseRect.width / 2;
             const joystickCenterY = joystickBaseRect.top + joystickBaseRect.height / 2;
             
-            // Обработка начала касания джойстика
             joystick.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 joystickActive = true;
@@ -1404,7 +1312,6 @@
                 joystickStartY = touch.clientY;
             });
 
-            // Обработка движения касания джойстика
             joystick.addEventListener('touchmove', (e) => {
                 if (!joystickActive) return;
                 
@@ -1412,8 +1319,7 @@
                 const touch = e.touches[0];
                 const dx = touch.clientX - joystickStartX;
                 const dy = touch.clientY - joystickStartY;
-                
-                // Ограничиваем перемещение стика радиусом джойстика
+
                 const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 30);
                 const angle = Math.atan2(dy, dx);
                 
@@ -1421,14 +1327,13 @@
                 const offsetY = Math.sin(angle) * distance;
                 
                 stick.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)`;
-                
-                // Определяем направление движения
+
                 if (!gameState.player || !gameState.player.isActive) return;
                 
-                const deadZone = 10; // Мертвая зона для предотвращения случайных движений
+                const deadZone = 10;
                 
                 if (Math.abs(dx) > Math.abs(dy)) {
-                    // Горизонтальное движение
+
                     if (dx > deadZone) {
                         gameState.player.direction = DIRECTIONS.RIGHT;
                         gameState.player.isMoving = true;
@@ -1437,7 +1342,7 @@
                         gameState.player.isMoving = true;
                     }
                 } else {
-                    // Вертикальное движение
+
                     if (dy > deadZone) {
                         gameState.player.direction = DIRECTIONS.DOWN;
                         gameState.player.isMoving = true;
@@ -1448,7 +1353,6 @@
                 }
             });
 
-            // Обработка окончания касания джойстика
             joystick.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 joystickActive = false;
@@ -1467,7 +1371,6 @@
                 }
             });
 
-            // Кнопка огня
             fireButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (gameState.player && gameState.player.isActive) {
@@ -1480,7 +1383,6 @@
             });
         }
 
-        // Игровой цикл
         function gameLoop() {
             if (!gameState.gameOver) {
                 handleInput();
@@ -1490,22 +1392,18 @@
             }
         }
 
-        // Инициализация игры
         function init() {
             createLevel();
             initMobileControls();
             gameLoop();
-            
-            // Обработка кнопки перезапуска
+
             restartButton.addEventListener('click', restartGame);
-            
-            // Первый комментарий командира
+
             setTimeout(() => {
                 showCommanderComment("Внимание! Защитите базу от вражеских танков!");
             }, 1000);
         }
 
-        // Запуск игры при загрузке страницы
         window.addEventListener('load', init);
     </script>
 </body>

@@ -278,7 +278,7 @@
             <ul>
                 <li>• 🛡️ <b>Щит</b> - неуязвимость 10 сек</li>
                 <li>• ⚡ <b>Тройной выстрел</b> - 3 снаряда 15 сек</li>
-                <li>• 🔄 <b>Рикошет</b> - отскок от стен 12 сек</li>
+                <li>• 🔄 <b>Рикошет</b> - отскок от любых стен 12 сек</li>
                 <li>• ⭐ <b>Звезда</b> - ускорение 15 сек</li>
                 <li>• 💣 <b>Граната</b> - уничтожение всех врагов</li>
                 <li>• ❤️ <b>Жизнь</b> - +1 жизнь</li>
@@ -334,6 +334,9 @@
         let fpsTime = 0;
         let currentFps = 0;
         let lastFrameTime = performance.now();
+        
+        // Offscreen canvas для фона (создаётся один раз на уровень)
+        let backgroundCanvas = null;
 
         const ENEMY_TYPES = {
             BASIC: {
@@ -652,13 +655,11 @@
                     this.x = newX;
                     this.y = newY;
                 } else {
-                    // Мгновенная смена направления при столкновении
                     if (!this.isPlayer) {
                         const oppositeDir = (this.direction + 2) % 4;
                         const possibleDirs = [0, 1, 2, 3].filter(d => d !== this.direction && d !== oppositeDir);
                         this.direction = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
                         
-                        // Дополнительная попытка движения в новом направлении
                         let altX = this.x;
                         let altY = this.y;
                         switch (this.direction) {
@@ -772,7 +773,6 @@
             draw() {
                 if (!this.isActive) return;
 
-                // Shield effect
                 if (this.isPlayer && gameState.playerBuffs.shield.active) {
                     const remaining = gameState.playerBuffs.shield.endTime - Date.now();
                     const alpha = Math.min(0.8, Math.max(0.3, remaining / 10000));
@@ -784,7 +784,6 @@
                     ctx.stroke();
                 }
                 
-                // Star effect
                 if (this.isPlayer && gameState.playerBuffs.star.active) {
                     ctx.strokeStyle = `rgba(255, 193, 7, ${0.4 + Math.sin(Date.now() / 100) * 0.2})`;
                     ctx.lineWidth = 2;
@@ -850,64 +849,102 @@
         }
 
         class Bullet {
-            constructor(x, y, direction, isPlayer, speed = BULLET_SPEED, ricochet = false, bounces = 0) {
+            constructor(x, y, direction, isPlayer, speed = BULLET_SPEED, ricochet = false) {
                 this.x = x;
                 this.y = y;
-                this.direction = direction;
                 this.isPlayer = isPlayer;
                 this.width = BULLET_SIZE;
                 this.height = BULLET_SIZE;
-                this.speed = speed;
                 this.isActive = true;
                 this.ricochet = ricochet;
-                this.bounces = bounces;
-                this.maxBounces = 3;
+                this.bounces = 0;
+                this.maxBounces = ricochet ? 10 : 0;
+                this.trail = []; // Для визуального хвоста рикошета
+                
+                // Конвертируем direction в вектор скорости
+                switch (direction) {
+                    case DIRECTIONS.UP:
+                        this.vx = 0; this.vy = -speed;
+                        break;
+                    case DIRECTIONS.RIGHT:
+                        this.vx = speed; this.vy = 0;
+                        break;
+                    case DIRECTIONS.DOWN:
+                        this.vx = 0; this.vy = speed;
+                        break;
+                    case DIRECTIONS.LEFT:
+                        this.vx = -speed; this.vy = 0;
+                        break;
+                }
             }
 
             update(dt) {
-                const spd = this.speed * dt;
-                switch (this.direction) {
-                    case DIRECTIONS.UP: this.y -= spd; break;
-                    case DIRECTIONS.RIGHT: this.x += spd; break;
-                    case DIRECTIONS.DOWN: this.y += spd; break;
-                    case DIRECTIONS.LEFT: this.x -= spd; break;
+                // Сохраняем позицию для хвоста
+                if (this.ricochet) {
+                    this.trail.push({ x: this.x + this.width / 2, y: this.y + this.height / 2 });
+                    if (this.trail.length > 6) this.trail.shift();
                 }
+                
+                // Движение
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
 
-                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                // Границы canvas
+                let hitBoundary = false;
+                if (this.x < 0) { this.x = 0; hitBoundary = 'left'; }
+                else if (this.x + this.width > canvas.width) { 
+                    this.x = canvas.width - this.width; 
+                    hitBoundary = 'right'; 
+                }
+                if (this.y < 0) { this.y = 0; hitBoundary = hitBoundary || 'top'; }
+                else if (this.y + this.height > canvas.height) { 
+                    this.y = canvas.height - this.height; 
+                    hitBoundary = hitBoundary || 'bottom'; 
+                }
+                
+                if (hitBoundary) {
                     if (this.ricochet && this.bounces < this.maxBounces) {
-                        this.performRicochet();
+                        if (hitBoundary === 'left' || hitBoundary === 'right') this.vx = -this.vx;
+                        if (hitBoundary === 'top' || hitBoundary === 'bottom') this.vy = -this.vy;
+                        this.bounces++;
                     } else {
                         this.isActive = false;
+                        return;
                     }
-                    return;
                 }
+                
+                // Стены (рикошет от любых, включая кирпич и бетон)
+                const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
                 
                 for (const wall of gameState.walls) {
                     if (wall.hp <= 0) continue;
 
                     const wallRect = { x: wall.x, y: wall.y, width: wall.width, height: wall.height };
-                    const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
 
                     if (this.checkCollision(bulletRect, wallRect)) {
-                        if (wall.type === 'steel') {
-                            if (this.ricochet && this.bounces < this.maxBounces) {
-                                this.performRicochet();
+                        if (this.ricochet) {
+                            // Рикошет от ЛЮБОЙ стены без разрушения
+                            this.performRicochet(wallRect);
+                            return;
+                        } else {
+                            // Обычная пуля
+                            if (wall.type === 'steel') {
+                                // От стали исчезает
+                                this.isActive = false;
                                 return;
                             } else {
+                                // Разрушает кирпич/бетон
+                                wall.hp--;
                                 this.isActive = false;
                                 return;
                             }
-                        } else {
-                            wall.hp--;
-                            this.isActive = false;
-                            return;
                         }
                     }
                 }
 
+                // База
                 if (gameState.base && !gameState.base.isDestroyed) {
                     const baseRect = { x: gameState.base.x, y: gameState.base.y, width: gameState.base.width, height: gameState.base.height };
-                    const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
 
                     if (this.checkCollision(bulletRect, baseRect)) {
                         this.isActive = false;
@@ -917,12 +954,12 @@
                     }
                 }
                 
+                // Танки
                 const tanks = this.isPlayer ? gameState.enemies : (gameState.player ? [gameState.player] : []);
                 for (const tank of tanks) {
                     if (!tank || !tank.isActive) continue;
 
                     const tankRect = { x: tank.x, y: tank.y, width: tank.width, height: tank.height };
-                    const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
 
                     if (this.checkCollision(bulletRect, tankRect)) {
                         this.isActive = false;
@@ -957,20 +994,37 @@
                 }
             }
             
-            performRicochet() {
-                // Рикошет на произвольный угол - выбираем любое направление кроме обратного
-                const oppositeDir = (this.direction + 2) % 4;
-                const possibleDirs = [0, 1, 2, 3].filter(d => d !== oppositeDir);
-                this.direction = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+            performRicochet(wallRect) {
+                const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
+                
+                // Определяем overlap по каждой оси
+                const overlapX = Math.min(bulletRect.x + bulletRect.width, wallRect.x + wallRect.width) - Math.max(bulletRect.x, wallRect.x);
+                const overlapY = Math.min(bulletRect.y + bulletRect.height, wallRect.y + wallRect.height) - Math.max(bulletRect.y, wallRect.y);
+                
+                // Меньший overlap указывает на ось столкновения
+                if (overlapX < overlapY) {
+                    // Столкновение по X (сбоку от стены)
+                    this.vx = -this.vx;
+                    // Выталкиваем пулю из стены
+                    if (this.vx > 0) {
+                        this.x = wallRect.x + wallRect.width;
+                    } else {
+                        this.x = wallRect.x - this.width;
+                    }
+                } else {
+                    // Столкновение по Y (сверху/снизу)
+                    this.vy = -this.vy;
+                    if (this.vy > 0) {
+                        this.y = wallRect.y + wallRect.height;
+                    } else {
+                        this.y = wallRect.y - this.height;
+                    }
+                }
+                
                 this.bounces++;
                 
-                // Небольшой сдвиг чтобы избежать повторного столкновения
-                const spd = this.speed * 0.5;
-                switch (this.direction) {
-                    case DIRECTIONS.UP: this.y -= spd; break;
-                    case DIRECTIONS.RIGHT: this.x += spd; break;
-                    case DIRECTIONS.DOWN: this.y += spd; break;
-                    case DIRECTIONS.LEFT: this.x -= spd; break;
+                if (this.bounces >= this.maxBounces) {
+                    this.isActive = false;
                 }
             }
 
@@ -985,14 +1039,41 @@
                 if (!this.isActive) return;
 
                 if (this.ricochet) {
+                    // Хвост рикошета
+                    if (this.trail.length > 1) {
+                        ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                        for (let i = 1; i < this.trail.length; i++) {
+                            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    // Свечение
+                    const cx = this.x + this.width / 2;
+                    const cy = this.y + this.height / 2;
+                    
+                    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, this.width * 2);
+                    gradient.addColorStop(0, 'rgba(255, 0, 255, 0.8)');
+                    gradient.addColorStop(0.5, 'rgba(255, 100, 255, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, this.width * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Ядро
                     ctx.fillStyle = '#FF00FF';
                     ctx.beginPath();
-                    ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width, 0, Math.PI * 2);
+                    ctx.arc(cx, cy, this.width * 0.8, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
-                    ctx.lineWidth = 2;
+                    
+                    ctx.strokeStyle = '#FFF';
+                    ctx.lineWidth = 1;
                     ctx.beginPath();
-                    ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width + 2, 0, Math.PI * 2);
+                    ctx.arc(cx, cy, this.width * 0.5, 0, Math.PI * 2);
                     ctx.stroke();
                 } else {
                     ctx.fillStyle = this.isPlayer ? '#4FC3F7' : '#FFD740';
@@ -1345,7 +1426,6 @@
             }
         }
         
-        // Рисование HUD бонусов прямо на canvas
         function drawBuffsHUD() {
             const buffMap = {
                 shield: { emoji: '🛡️', name: 'Щит', color: '#2196F3' },
@@ -1369,7 +1449,6 @@
             const itemWidth = 140;
             const padding = 6;
             
-            // Полупрозрачный фон
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(startX - 2, startY - 2, itemWidth + 4, activeBuffs.length * (itemHeight + 4) + 4);
             ctx.strokeStyle = 'rgba(76, 175, 80, 0.8)';
@@ -1386,22 +1465,18 @@
                 
                 const info = buffMap[key];
                 
-                // Фон элемента
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
                 ctx.fillRect(startX, y, itemWidth, itemHeight);
                 
-                // Иконка
                 ctx.font = '18px sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(info.emoji, startX + padding, y + itemHeight / 2);
                 
-                // Название
                 ctx.font = 'bold 11px sans-serif';
                 ctx.fillStyle = '#ccc';
                 ctx.fillText(info.name, startX + 28, y + 8);
                 
-                // Прогресс-бар фон
                 const barX = startX + 28;
                 const barY = y + 16;
                 const barWidth = itemWidth - 65;
@@ -1410,7 +1485,6 @@
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
                 ctx.fillRect(barX, barY, barWidth, barHeight);
                 
-                // Прогресс-бар заполнение
                 let barColor;
                 if (percent < 25) barColor = '#F44336';
                 else if (percent < 50) barColor = '#FF9800';
@@ -1419,7 +1493,6 @@
                 ctx.fillStyle = barColor;
                 ctx.fillRect(barX, barY, barWidth * (percent / 100), barHeight);
                 
-                // Секунды
                 ctx.font = 'bold 12px monospace';
                 ctx.fillStyle = '#fff';
                 ctx.textAlign = 'right';
@@ -1447,6 +1520,76 @@
             
             if (!blocked) {
                 gameState.bonuses.push(new Bonus(x, y, bonusType));
+            }
+        }
+        
+        // Создание кэшированного фона земли
+        function createBackground() {
+            backgroundCanvas = document.createElement('canvas');
+            backgroundCanvas.width = canvas.width;
+            backgroundCanvas.height = canvas.height;
+            const bgCtx = backgroundCanvas.getContext('2d');
+            
+            // Базовый цвет земли
+            bgCtx.fillStyle = '#3a5520';
+            bgCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Текстура с вариациями по тайлам
+            for (let x = 0; x < canvas.width; x += TILE_SIZE) {
+                for (let y = 0; y < canvas.height; y += TILE_SIZE) {
+                    // Псевдослучайный seed на основе координат
+                    let seed = Math.abs((x * 73856093) ^ (y * 19349663));
+                    const r1 = (seed % 1000) / 1000;
+                    seed = (seed * 9301 + 49297) % 233280;
+                    const r2 = (seed % 1000) / 1000;
+                    seed = (seed * 9301 + 49297) % 233280;
+                    const r3 = (seed % 1000) / 1000;
+                    
+                    // Вариация оттенка тайла
+                    const variation = Math.floor(r1 * 16) - 8;
+                    const baseR = 58 + variation;
+                    const baseG = 85 + variation;
+                    const baseB = 32 + Math.floor(variation / 2);
+                    bgCtx.fillStyle = `rgb(${baseR}, ${baseG}, ${baseB})`;
+                    bgCtx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+                    
+                    // Тонкая граница тайла (сетка)
+                    bgCtx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+                    bgCtx.lineWidth = 1;
+                    bgCtx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                    
+                    // Декоративные элементы
+                    if (r2 < 0.25) {
+                        // Тёмное пятно (камень/земля)
+                        bgCtx.fillStyle = 'rgba(30, 40, 15, 0.4)';
+                        bgCtx.beginPath();
+                        bgCtx.arc(x + r1 * TILE_SIZE, y + r2 * TILE_SIZE, 1.5 + r3, 0, Math.PI * 2);
+                        bgCtx.fill();
+                    }
+                    if (r2 > 0.75) {
+                        // Светлая травинка
+                        bgCtx.fillStyle = 'rgba(120, 180, 60, 0.35)';
+                        bgCtx.beginPath();
+                        bgCtx.arc(x + r3 * TILE_SIZE, y + r1 * TILE_SIZE, 1 + r2, 0, Math.PI * 2);
+                        bgCtx.fill();
+                    }
+                    if (r3 < 0.1) {
+                        // Мелкий камушек
+                        bgCtx.fillStyle = 'rgba(90, 80, 60, 0.6)';
+                        bgCtx.beginPath();
+                        bgCtx.arc(x + r1 * TILE_SIZE, y + r2 * TILE_SIZE, 1.5, 0, Math.PI * 2);
+                        bgCtx.fill();
+                    }
+                }
+            }
+        }
+        
+        function drawBackground() {
+            if (backgroundCanvas) {
+                ctx.drawImage(backgroundCanvas, 0, 0);
+            } else {
+                ctx.fillStyle = '#3a5520';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
         }
 
@@ -1530,6 +1673,9 @@
             gameState.player.spawnInvincible = 2000;
 
             spawnEnemies();
+            
+            // Создаём кэшированный фон после создания карты
+            createBackground();
         }
 
         function respawnPlayer() {
@@ -1648,25 +1794,35 @@
         }
 
         function draw() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Фон/земля
+            drawBackground();
 
+            // Вода рисуется поверх земли
             gameState.waters.forEach(water => water.draw());
+            
+            // Стены
             gameState.walls.forEach(wall => wall.draw());
 
+            // База
             if (gameState.base) gameState.base.draw();
 
+            // Бонусы
             gameState.bonuses.forEach(bonus => bonus.draw());
+            
+            // Пули
             gameState.bullets.forEach(bullet => bullet.draw());
+            
+            // Танки
             gameState.enemies.forEach(enemy => enemy.draw());
 
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.draw();
             }
 
+            // Кусты рисуются поверх танков (танки прячутся в кустах)
             gameState.bushes.forEach(bush => bush.draw());
             
-            // HUD бонусов рисуется поверх всего
+            // HUD бонусов
             drawBuffsHUD();
         }
 

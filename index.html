@@ -2139,7 +2139,7 @@
                 gameState.player.shoot();
             }
 
-            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
                 e.preventDefault();
             }
         });
@@ -2147,7 +2147,7 @@
         window.addEventListener('keyup', (e) => {
             keys[e.key] = false;
 
-            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'ArrowUp', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 if (gameState.player) gameState.player.isMoving = false;
             }
         });
@@ -2155,16 +2155,16 @@
         function handleInput() {
             if (!gameState.player || !gameState.player.isActive) return;
             
-            if (keys['ArrowUp'] || keys['w']) {
+            if (keys['ArrowUp'] || keys['w'] || keys['ц'] || keys['W'] || keys['Ц']) {
                 gameState.player.direction = DIRECTIONS.UP;
                 gameState.player.isMoving = true;
-            } else if (keys['ArrowRight'] || keys['d']) {
+            } else if (keys['ArrowRight'] || keys['d'] || keys['в'] || keys['D'] || keys['В']) {
                 gameState.player.direction = DIRECTIONS.RIGHT;
                 gameState.player.isMoving = true;
-            } else if (keys['ArrowDown'] || keys['s']) {
+            } else if (keys['ArrowDown'] || keys['s'] || keys['ы'] || keys['S'] || keys['Ы']) {
                 gameState.player.direction = DIRECTIONS.DOWN;
                 gameState.player.isMoving = true;
-            } else if (keys['ArrowLeft'] || keys['a']) {
+            } else if (keys['ArrowLeft'] || keys['a'] || keys['ф'] || keys['A'] || keys['Ф']) {
                 gameState.player.direction = DIRECTIONS.LEFT;
                 gameState.player.isMoving = true;
             }

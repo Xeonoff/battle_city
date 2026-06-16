@@ -16,13 +16,13 @@ export class InputManager {
             if (e.key === ' ' && this.state.player?.isActive) {
                 this.state.player.shoot(this.state);
             }
-            if (['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',' '].includes(e.key)) {
                 e.preventDefault();
             }
         });
         window.addEventListener('keyup', (e) => {
             this.keys[e.key] = false;
-            if (['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 if (this.state.player) this.state.player.isMoving = false;
             }
         });
@@ -44,13 +44,13 @@ export class InputManager {
     poll() {
         const p = this.state.player;
         if (!p || !p.isActive) return;
-        if (this.keys['ArrowUp'] || this.keys['w']) {
+        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['ц'] || this.keys['W'] || this.keys['Ц']) {
             p.direction = DIRECTIONS.UP; p.isMoving = true;
-        } else if (this.keys['ArrowRight'] || this.keys['d']) {
+        } else if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['в'] || this.keys['D'] || this.keys['В']) {
             p.direction = DIRECTIONS.RIGHT; p.isMoving = true;
-        } else if (this.keys['ArrowDown'] || this.keys['s']) {
+        } else if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['ы'] || this.keys['S'] || this.keys['Ы']) {
             p.direction = DIRECTIONS.DOWN; p.isMoving = true;
-        } else if (this.keys['ArrowLeft'] || this.keys['a']) {
+        } else if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['ф'] || this.keys['A'] || this.keys['Ф']) {
             p.direction = DIRECTIONS.LEFT; p.isMoving = true;
         }
     }

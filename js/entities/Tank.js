@@ -3,6 +3,10 @@ import { ENEMY_TYPES } from '../config/enemyTypes.js';
 import { Bullet } from './Bullet.js';
 import { rectsOverlap } from '../core/utils.js';
 import { chooseBestDirection } from '../ai/EnemyAI.js';
+import { TankRenderer } from '../rendering/TankRenderer.js';
+
+// Общий экземпляр рендерера (синглтон для всей игры)
+const tankRenderer = new TankRenderer();
 
 export class Tank {
     constructor(x, y, direction, isPlayer = false, enemyType = 'BASIC') {
@@ -23,8 +27,6 @@ export class Tank {
 
         if (isPlayer) {
             this.type = 'PLAYER';
-            this.color = '#4CAF50';
-            this.turretColor = '#2E7D32';
             this.hp = 1;
             this.baseSpeed = BASE_PLAYER_SPEED;
             this.shootCooldownMs = 250;
@@ -33,8 +35,6 @@ export class Tank {
             const type = ENEMY_TYPES[enemyType];
             this.type = type.name;
             this.enemyTypeKey = enemyType;
-            this.color = type.color;
-            this.turretColor = type.turretColor;
             this.hp = type.hp;
             this.maxHp = type.hp;
             this.baseSpeed = type.speed;
@@ -115,7 +115,6 @@ export class Tank {
 
     _checkWallCollision(newX, newY, state) {
         const tankRect = { x: newX, y: newY, width: this.width, height: this.height };
-
         for (const wall of state.walls) {
             if (wall.hp > 0 && rectsOverlap(tankRect, wall.getRect())) return true;
         }
@@ -174,76 +173,6 @@ export class Tank {
     }
 
     draw(ctx, state) {
-        if (!this.isActive) return;
-
-        // Shield effect
-        if (this.isPlayer && state.playerBuffs.shield.active) {
-            const remaining = state.playerBuffs.shield.endTime - Date.now();
-            const alpha = Math.min(0.8, Math.max(0.3, remaining / 10000));
-            ctx.strokeStyle = `rgba(33, 150, 243, ${alpha})`;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            const radius = this.width * 0.85 + Math.sin(Date.now() / 100) * 2;
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, radius, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-
-        if (this.isPlayer && state.playerBuffs.star.active) {
-            ctx.strokeStyle = `rgba(255, 193, 7, ${0.4 + Math.sin(Date.now() / 100) * 0.2})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width * 0.9, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-
-        if (this.flashTimer > 0 && Math.floor(this.flashTimer) % 4 < 2) return;
-
-        if (this.spawnInvincible > 0 && Math.floor(Date.now() / 150) % 2 === 0) {
-            ctx.globalAlpha = 0.5;
-        }
-
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        ctx.fillStyle = '#333';
-        switch (this.direction) {
-            case DIRECTIONS.UP:
-                ctx.fillRect(this.x + this.width / 2 - 2, this.y - 6, 4, 8); break;
-            case DIRECTIONS.RIGHT:
-                ctx.fillRect(this.x + this.width, this.y + this.height / 2 - 2, 8, 4); break;
-            case DIRECTIONS.DOWN:
-                ctx.fillRect(this.x + this.width / 2 - 2, this.y + this.height, 4, 8); break;
-            case DIRECTIONS.LEFT:
-                ctx.fillRect(this.x - 8, this.y + this.height / 2 - 2, 8, 4); break;
-        }
-
-        ctx.fillStyle = this.turretColor;
-        ctx.fillRect(this.x + 4, this.y + 4, this.width - 8, this.height - 8);
-
-        ctx.globalAlpha = 1;
-
-        if (!this.isPlayer && this.maxHp > 1) {
-            const barWidth = this.width;
-            const barHeight = 3;
-            const barY = this.y - 6;
-            ctx.fillStyle = '#333';
-            ctx.fillRect(this.x, barY, barWidth, barHeight);
-            const ratio = this.hp / this.maxHp;
-            ctx.fillStyle = ratio > 0.5 ? '#4CAF50' : (ratio > 0.25 ? '#FF9800' : '#F44336');
-            ctx.fillRect(this.x, barY, barWidth * ratio, barHeight);
-        }
-
-        if (!this.isPlayer) {
-            let marker = '';
-            if (this.type === 'fast') marker = 'F';
-            else if (this.type === 'heavy') marker = 'H';
-            else if (this.type === 'power') marker = 'P';
-            if (marker) {
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 10px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText(marker, this.x + this.width / 2, this.y + this.height / 2 + 3);
-            }
-        }
+        tankRenderer.draw(ctx, this, state);
     }
 }

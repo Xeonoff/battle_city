@@ -37,7 +37,7 @@
             overflow: hidden; box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
         }
         
-        canvas { display: block; background-color: #000; width: 100%; height: 100%; }
+        canvas { display: block; background-color: #000; width: 100%; height: 100%; cursor: crosshair; }
         
         .info-panel {
             display: flex; justify-content: space-between; align-items: center;
@@ -53,26 +53,6 @@
         
         .info-label { font-size: 0.9rem; color: #aaa; }
         .info-value { font-size: 1.2rem; font-weight: bold; color: #ffcc00; }
-        
-        .controls {
-            display: flex; justify-content: space-between;
-            margin-top: 15px; padding: 15px;
-            background-color: rgba(0, 0, 0, 0.7); border-radius: 8px;
-            border: 2px solid #ffcc00; gap: 15px;
-        }
-        
-        .control-group {
-            display: flex; flex-direction: column;
-            align-items: center; flex: 1;
-        }
-        
-        .control-title { font-size: 1rem; margin-bottom: 10px; color: #ffcc00; }
-        
-        .key {
-            display: inline-block; padding: 5px 10px; margin: 2px;
-            background-color: #333; border-radius: 4px;
-            border: 1px solid #666; font-family: monospace; font-weight: bold;
-        }
         
         .game-over {
             position: absolute; top: 0; left: 0;
@@ -126,19 +106,67 @@
             font-family: monospace; min-width: 80px; text-align: right;
         }
         
-        .instructions {
-            margin-top: 20px; padding: 15px;
-            background-color: rgba(0, 0, 0, 0.7); border-radius: 8px;
-            text-align: left; line-height: 1.5;
+        .tooltip {
+            position: fixed;
+            background: rgba(10, 10, 20, 0.95);
+            border: 2px solid #ffcc00;
+            border-radius: 8px;
+            padding: 10px 14px;
+            min-width: 180px;
+            max-width: 260px;
+            z-index: 1000;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 204, 0, 0.3);
+            font-size: 0.9rem;
+            backdrop-filter: blur(4px);
         }
         
-        .instructions h3 { color: #ffcc00; margin-bottom: 10px; text-align: center; }
-        .instructions ul { list-style-type: none; padding-left: 10px; }
-        .instructions li { margin-bottom: 8px; }
+        .tooltip.show { display: block; animation: tooltipFade 0.15s ease-out; }
+        
+        @keyframes tooltipFade {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 204, 0, 0.3);
+            margin-bottom: 6px;
+        }
+        
+        .tooltip-emoji {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        
+        .tooltip-title {
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        .tooltip-desc {
+            color: #e0e0e0;
+            line-height: 1.4;
+        }
+        
+        .tooltip-desc b { color: #ffcc00; }
+        
+        .tooltip-stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+        }
+        
+        .tooltip-stat-label { color: #aaa; }
+        .tooltip-stat-value { color: #4FC3F7; font-weight: bold; font-family: monospace; }
         
         @media (max-width: 650px) {
             .game-container { width: 100%; height: auto; aspect-ratio: 1 / 1; }
-            .controls { flex-direction: column; }
             h1 { font-size: 2rem; }
             .subtitle { font-size: 1rem; }
         }
@@ -254,37 +282,6 @@
             <button class="toggle-llm" id="toggleLlmBtn">🟢 LLM: ВКЛ</button>
             <span class="fps-indicator" id="fpsIndicator">FPS: --</span>
         </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <div class="control-title">УПРАВЛЕНИЕ</div>
-                <div>
-                    <span class="key">↑</span> <span class="key">↓</span> 
-                    <span class="key">←</span> <span class="key">→</span> - Движение<br>
-                    <span class="key">ПРОБЕЛ</span> - Стрельба
-                </div>
-            </div>
-            <div class="control-group">
-                <div class="control-title">ТИПЫ ВРАГОВ</div>
-                <div style="font-size: 0.9rem;">
-                    🔴 Обычный • 🟣 Быстрый<br>
-                    ⚫ Тяжёлый (3HP) • 🟠 Мощный
-                </div>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <h3>БОНУСЫ И СТЕНЫ</h3>
-            <ul>
-                <li>• 🛡️ <b>Щит</b> - неуязвимость 10 сек</li>
-                <li>• ⚡ <b>Тройной выстрел</b> - 3 снаряда 15 сек</li>
-                <li>• 🔄 <b>Рикошет</b> - отскок от любых стен 12 сек</li>
-                <li>• ⭐ <b>Звезда</b> - ускорение 15 сек</li>
-                <li>• 💣 <b>Граната</b> - уничтожение всех врагов</li>
-                <li>• ❤️ <b>Жизнь</b> - +1 жизнь</li>
-                <li>• <b>Стены:</b> 🟫 кирпич (2HP) • 🔲 бетон (3HP) • ⬛ сталь (∞)</li>
-            </ul>
-        </div>
     </div>
 
     <div class="mobile-controls">
@@ -299,6 +296,8 @@
         <div class="commander-avatar">⚔️</div>
         <p id="commentText">Командир: Держитесь, солдаты!</p>
     </div>
+    
+    <div class="tooltip" id="tooltip"></div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -316,6 +315,7 @@
         const commentText = document.getElementById('commentText');
         const toggleLlmBtn = document.getElementById('toggleLlmBtn');
         const fpsIndicator = document.getElementById('fpsIndicator');
+        const tooltip = document.getElementById('tooltip');
 
         const joystick = document.querySelector('.joystick');
         const stick = document.querySelector('.joystick-stick');
@@ -335,43 +335,68 @@
         let currentFps = 0;
         let lastFrameTime = performance.now();
         
-        // Offscreen canvas для фона (создаётся один раз на уровень)
         let backgroundCanvas = null;
 
         const ENEMY_TYPES = {
             BASIC: {
-                name: 'basic', speed: BASE_ENEMY_SPEED, hp: 1,
+                name: 'basic', displayName: '🔴 Обычный танк',
+                speed: BASE_ENEMY_SPEED, hp: 1,
                 color: '#FF5252', turretColor: '#D32F2F',
                 shootCooldownMs: 1200, score: 100,
-                bulletSpeed: BULLET_SPEED, dropChance: 0.1
+                bulletSpeed: BULLET_SPEED, dropChance: 0.1,
+                description: 'Стандартный враг. Одно попадание.'
             },
             FAST: {
-                name: 'fast', speed: BASE_ENEMY_SPEED * 2, hp: 1,
+                name: 'fast', displayName: '🟣 Быстрый танк',
+                speed: BASE_ENEMY_SPEED * 2, hp: 1,
                 color: '#AB47BC', turretColor: '#7B1FA2',
                 shootCooldownMs: 800, score: 200,
-                bulletSpeed: BULLET_SPEED * 1.3, dropChance: 0.2
+                bulletSpeed: BULLET_SPEED * 1.3, dropChance: 0.2,
+                description: 'Двигается в 2 раза быстрее обычного.'
             },
             HEAVY: {
-                name: 'heavy', speed: BASE_ENEMY_SPEED * 0.6, hp: 3,
+                name: 'heavy', displayName: '⚫ Тяжёлый танк',
+                speed: BASE_ENEMY_SPEED * 0.6, hp: 3,
                 color: '#455A64', turretColor: '#263238',
                 shootCooldownMs: 1500, score: 300,
-                bulletSpeed: BULLET_SPEED * 0.8, dropChance: 0.35
+                bulletSpeed: BULLET_SPEED * 0.8, dropChance: 0.35,
+                description: 'Бронированный. Требует 3 попаданий.'
             },
             POWER: {
-                name: 'power', speed: BASE_ENEMY_SPEED * 0.9, hp: 2,
+                name: 'power', displayName: '🟠 Мощный танк',
+                speed: BASE_ENEMY_SPEED * 0.9, hp: 2,
                 color: '#FF6F00', turretColor: '#E65100',
                 shootCooldownMs: 600, score: 400,
-                bulletSpeed: BULLET_SPEED * 1.5, dropChance: 0.4
+                bulletSpeed: BULLET_SPEED * 1.5, dropChance: 0.4,
+                description: 'Стреляет быстро и мощно. 2 HP.'
             }
         };
 
         const BONUS_TYPES = {
-            SHIELD: { name: 'shield', emoji: '🛡️', duration: 10000, color: '#2196F3', displayName: 'Щит' },
-            TRIPLE: { name: 'triple', emoji: '⚡', duration: 15000, color: '#FFEB3B', displayName: 'Тройной' },
-            RICOCHET: { name: 'ricochet', emoji: '🔄', duration: 12000, color: '#9C27B0', displayName: 'Рикошет' },
-            STAR: { name: 'star', emoji: '⭐', duration: 15000, color: '#FFC107', displayName: 'Скорость' },
-            GRENADE: { name: 'grenade', emoji: '💣', duration: 0, color: '#F44336', displayName: 'Граната' },
-            LIFE: { name: 'life', emoji: '❤️', duration: 0, color: '#E91E63', displayName: 'Жизнь' }
+            SHIELD: { 
+                name: 'shield', emoji: '🛡️', duration: 10000, color: '#2196F3', displayName: 'Щит',
+                description: 'Полная неуязвимость на 10 секунд'
+            },
+            TRIPLE: { 
+                name: 'triple', emoji: '⚡', duration: 15000, color: '#FFEB3B', displayName: 'Тройной выстрел',
+                description: '3 снаряда в разных направлениях за один выстрел'
+            },
+            RICOCHET: { 
+                name: 'ricochet', emoji: '🔄', duration: 12000, color: '#9C27B0', displayName: 'Рикошет',
+                description: 'Снаряды отскакивают от любых стен (до 10 раз)'
+            },
+            STAR: { 
+                name: 'star', emoji: '⭐', duration: 15000, color: '#FFC107', displayName: 'Звезда скорости',
+                description: 'Ускорение танка и пуль на 15 секунд'
+            },
+            GRENADE: { 
+                name: 'grenade', emoji: '💣', duration: 0, color: '#F44336', displayName: 'Граната',
+                description: 'Мгновенно уничтожает всех врагов на поле'
+            },
+            LIFE: { 
+                name: 'life', emoji: '❤️', duration: 0, color: '#E91E63', displayName: 'Доп. жизнь',
+                description: '+1 дополнительная жизнь'
+            }
         };
 
         const LEVEL_MAPS = [
@@ -583,6 +608,10 @@
                 this.spawnTime = Date.now();
                 this.spawnInvincible = isPlayer ? 0 : 1500;
                 
+                // AI параметры
+                this.lastDecisionTime = 0;
+                this.decisionInterval = 300 + Math.random() * 200; // 300-500мс между решениями
+                
                 if (isPlayer) {
                     this.type = 'PLAYER';
                     this.color = '#4CAF50';
@@ -594,6 +623,7 @@
                 } else {
                     const type = ENEMY_TYPES[enemyType];
                     this.type = type.name;
+                    this.enemyTypeKey = enemyType;
                     this.color = type.color;
                     this.turretColor = type.turretColor;
                     this.hp = type.hp;
@@ -624,8 +654,11 @@
                     const levelSpeedMult = 1 + (gameState.level - 1) * 0.05;
                     this.currentSpeed = this.baseSpeed * levelSpeedMult;
                     
-                    if (Math.random() < 0.01 * dt) {
-                        this.direction = Math.floor(Math.random() * 4);
+                    // AI: периодическая переоценка направления с utility-based системой
+                    const now = Date.now();
+                    if (now - this.lastDecisionTime > this.decisionInterval) {
+                        this.lastDecisionTime = now;
+                        this.chooseBestDirection();
                     }
 
                     const shootChance = this.type === 'power' ? 0.035 : 0.02;
@@ -635,6 +668,123 @@
                     
                     this.move(dt);
                 }
+            }
+            
+            // Utility-based AI: оценка каждого возможного направления
+            chooseBestDirection() {
+                const lookahead = TILE_SIZE * 2; // на сколько "смотрим вперёд"
+                let bestDir = this.direction;
+                let bestUtility = -Infinity;
+                
+                for (let dir = 0; dir < 4; dir++) {
+                    let testX = this.x;
+                    let testY = this.y;
+                    
+                    switch (dir) {
+                        case DIRECTIONS.UP: testY -= lookahead; break;
+                        case DIRECTIONS.RIGHT: testX += lookahead; break;
+                        case DIRECTIONS.DOWN: testY += lookahead; break;
+                        case DIRECTIONS.LEFT: testX -= lookahead; break;
+                    }
+                    
+                    const utility = this.evaluateDirection(testX, testY, dir);
+                    
+                    // Лёгкая случайность для разнообразия поведения
+                    const noisyUtility = utility + (Math.random() - 0.5) * 3;
+                    
+                    if (noisyUtility > bestUtility) {
+                        bestUtility = noisyUtility;
+                        bestDir = dir;
+                    }
+                }
+                
+                this.direction = bestDir;
+            }
+            
+            evaluateDirection(testX, testY, dir) {
+                // Ограничение по полю
+                testX = Math.max(TILE_SIZE, Math.min(canvas.width - TILE_SIZE - this.width, testX));
+                testY = Math.max(TILE_SIZE, Math.min(canvas.height - TILE_SIZE - this.height, testY));
+                
+                let utility = 0;
+                
+                // 1. Штраф за коллизию (жёсткий)
+                if (this.checkWallCollision(testX, testY) || this.checkTankCollision(testX, testY)) {
+                    utility -= 100;
+                }
+                
+                // 2. Вознаграждение за приближение к базе игрока (главная цель врагов)
+                if (gameState.base && !gameState.base.isDestroyed) {
+                    const baseCx = gameState.base.x + gameState.base.width / 2;
+                    const baseCy = gameState.base.y + gameState.base.height / 2;
+                    
+                    const currDx = (this.x + this.width / 2) - baseCx;
+                    const currDy = (this.y + this.height / 2) - baseCy;
+                    const currDistSq = currDx * currDx + currDy * currDy;
+                    
+                    const newDx = (testX + this.width / 2) - baseCx;
+                    const newDy = (testY + this.height / 2) - baseCy;
+                    const newDistSq = newDx * newDx + newDy * newDy;
+                    
+                    // Нормализуем по R² карты
+                    const maxRSq = canvas.width * canvas.width + canvas.height * canvas.height;
+                    utility += ((currDistSq - newDistSq) / maxRSq) * 80;
+                }
+                
+                // 3. Вторичная цель - игрок
+                if (gameState.player && gameState.player.isActive) {
+                    const pCx = gameState.player.x + gameState.player.width / 2;
+                    const pCy = gameState.player.y + gameState.player.height / 2;
+                    
+                    const currDx = (this.x + this.width / 2) - pCx;
+                    const currDy = (this.y + this.height / 2) - pCy;
+                    const currDistSq = currDx * currDx + currDy * currDy;
+                    
+                    const newDx = (testX + this.width / 2) - pCx;
+                    const newDy = (testY + this.height / 2) - pCy;
+                    const newDistSq = newDx * newDx + newDy * newDy;
+                    
+                    const maxRSq = canvas.width * canvas.width + canvas.height * canvas.height;
+                    utility += ((currDistSq - newDistSq) / maxRSq) * 30;
+                }
+                
+                // 4. Штраф за близость к границам (R²-зависимый)
+                const cx = testX + this.width / 2;
+                const cy = testY + this.height / 2;
+                const margin = TILE_SIZE * 3;
+                
+                const edges = [
+                    { dist: cx, name: 'left' },
+                    { dist: canvas.width - cx, name: 'right' },
+                    { dist: cy, name: 'top' },
+                    { dist: canvas.height - cy, name: 'bottom' }
+                ];
+                
+                for (const edge of edges) {
+                    if (edge.dist < margin) {
+                        const t = 1 - (edge.dist / margin); // 0 на границе, 1 на margin
+                        utility -= t * t * 60; // квадратичный штраф
+                    }
+                }
+                
+                // 5. Бонус за движение в сторону игрока/базы с учётом направления стрельбы
+                // (танк стреляет только в направлении движения, так что это важно)
+                if (gameState.player && gameState.player.isActive) {
+                    const pCx = gameState.player.x + gameState.player.width / 2;
+                    const pCy = gameState.player.y + gameState.player.height / 2;
+                    const dx = pCx - (this.x + this.width / 2);
+                    const dy = pCy - (this.y + this.height / 2);
+                    
+                    let facingPlayer = false;
+                    if (dir === DIRECTIONS.UP && dy < -TILE_SIZE) facingPlayer = true;
+                    if (dir === DIRECTIONS.DOWN && dy > TILE_SIZE) facingPlayer = true;
+                    if (dir === DIRECTIONS.LEFT && dx < -TILE_SIZE) facingPlayer = true;
+                    if (dir === DIRECTIONS.RIGHT && dx > TILE_SIZE) facingPlayer = true;
+                    
+                    if (facingPlayer) utility += 15;
+                }
+                
+                return utility;
             }
 
             move(dt) {
@@ -655,23 +805,14 @@
                     this.x = newX;
                     this.y = newY;
                 } else {
+                    // Мгновенная переоценка направления при столкновении
                     if (!this.isPlayer) {
+                        this.lastDecisionTime = 0; // заставляем пересмотреть в след. кадре
+                        // Временный fallback: случайное из перпендикулярных
                         const oppositeDir = (this.direction + 2) % 4;
                         const possibleDirs = [0, 1, 2, 3].filter(d => d !== this.direction && d !== oppositeDir);
-                        this.direction = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-                        
-                        let altX = this.x;
-                        let altY = this.y;
-                        switch (this.direction) {
-                            case DIRECTIONS.UP: altY -= currentSpeed; break;
-                            case DIRECTIONS.RIGHT: altX += currentSpeed; break;
-                            case DIRECTIONS.DOWN: altY += currentSpeed; break;
-                            case DIRECTIONS.LEFT: altX -= currentSpeed; break;
-                        }
-                        if (!this.checkWallCollision(altX, altY) && !this.checkTankCollision(altX, altY)) {
-                            this.x = altX;
-                            this.y = altY;
-                        }
+                        const newDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                        this.direction = newDir;
                     }
                 }
                 this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
@@ -859,9 +1000,8 @@
                 this.ricochet = ricochet;
                 this.bounces = 0;
                 this.maxBounces = ricochet ? 10 : 0;
-                this.trail = []; // Для визуального хвоста рикошета
+                this.trail = [];
                 
-                // Конвертируем direction в вектор скорости
                 switch (direction) {
                     case DIRECTIONS.UP:
                         this.vx = 0; this.vy = -speed;
@@ -879,17 +1019,14 @@
             }
 
             update(dt) {
-                // Сохраняем позицию для хвоста
                 if (this.ricochet) {
                     this.trail.push({ x: this.x + this.width / 2, y: this.y + this.height / 2 });
                     if (this.trail.length > 6) this.trail.shift();
                 }
                 
-                // Движение
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
 
-                // Границы canvas
                 let hitBoundary = false;
                 if (this.x < 0) { this.x = 0; hitBoundary = 'left'; }
                 else if (this.x + this.width > canvas.width) { 
@@ -913,7 +1050,6 @@
                     }
                 }
                 
-                // Стены (рикошет от любых, включая кирпич и бетон)
                 const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
                 
                 for (const wall of gameState.walls) {
@@ -923,17 +1059,13 @@
 
                     if (this.checkCollision(bulletRect, wallRect)) {
                         if (this.ricochet) {
-                            // Рикошет от ЛЮБОЙ стены без разрушения
                             this.performRicochet(wallRect);
                             return;
                         } else {
-                            // Обычная пуля
                             if (wall.type === 'steel') {
-                                // От стали исчезает
                                 this.isActive = false;
                                 return;
                             } else {
-                                // Разрушает кирпич/бетон
                                 wall.hp--;
                                 this.isActive = false;
                                 return;
@@ -942,7 +1074,6 @@
                     }
                 }
 
-                // База
                 if (gameState.base && !gameState.base.isDestroyed) {
                     const baseRect = { x: gameState.base.x, y: gameState.base.y, width: gameState.base.width, height: gameState.base.height };
 
@@ -954,7 +1085,6 @@
                     }
                 }
                 
-                // Танки
                 const tanks = this.isPlayer ? gameState.enemies : (gameState.player ? [gameState.player] : []);
                 for (const tank of tanks) {
                     if (!tank || !tank.isActive) continue;
@@ -997,22 +1127,17 @@
             performRicochet(wallRect) {
                 const bulletRect = { x: this.x, y: this.y, width: this.width, height: this.height };
                 
-                // Определяем overlap по каждой оси
                 const overlapX = Math.min(bulletRect.x + bulletRect.width, wallRect.x + wallRect.width) - Math.max(bulletRect.x, wallRect.x);
                 const overlapY = Math.min(bulletRect.y + bulletRect.height, wallRect.y + wallRect.height) - Math.max(bulletRect.y, wallRect.y);
                 
-                // Меньший overlap указывает на ось столкновения
                 if (overlapX < overlapY) {
-                    // Столкновение по X (сбоку от стены)
                     this.vx = -this.vx;
-                    // Выталкиваем пулю из стены
                     if (this.vx > 0) {
                         this.x = wallRect.x + wallRect.width;
                     } else {
                         this.x = wallRect.x - this.width;
                     }
                 } else {
-                    // Столкновение по Y (сверху/снизу)
                     this.vy = -this.vy;
                     if (this.vy > 0) {
                         this.y = wallRect.y + wallRect.height;
@@ -1039,7 +1164,6 @@
                 if (!this.isActive) return;
 
                 if (this.ricochet) {
-                    // Хвост рикошета
                     if (this.trail.length > 1) {
                         ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
                         ctx.lineWidth = 2;
@@ -1051,7 +1175,6 @@
                         ctx.stroke();
                     }
                     
-                    // Свечение
                     const cx = this.x + this.width / 2;
                     const cy = this.y + this.height / 2;
                     
@@ -1064,7 +1187,6 @@
                     ctx.arc(cx, cy, this.width * 2, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Ядро
                     ctx.fillStyle = '#FF00FF';
                     ctx.beginPath();
                     ctx.arc(cx, cy, this.width * 0.8, 0, Math.PI * 2);
@@ -1093,18 +1215,26 @@
                 switch(type) {
                     case 'brick':
                         this.maxHp = 2;
+                        this.displayName = '🟫 Кирпичная стена';
+                        this.description = 'Разрушается 2 попаданиями';
                         this.isDestructible = true;
                         break;
                     case 'steel':
                         this.maxHp = Infinity;
+                        this.displayName = '⬛ Стальная стена';
+                        this.description = 'Неразрушимая. Только рикошет.';
                         this.isDestructible = false;
                         break;
                     case 'fortified':
                         this.maxHp = 3;
+                        this.displayName = '🔲 Укреплённая стена';
+                        this.description = 'Бетон с арматурой. 3 попадания.';
                         this.isDestructible = true;
                         break;
                     default:
                         this.maxHp = 2;
+                        this.displayName = 'Стена';
+                        this.description = '';
                         this.isDestructible = true;
                 }
                 this.hp = this.maxHp;
@@ -1206,6 +1336,8 @@
                 this.y = y;
                 this.width = TILE_SIZE;
                 this.height = TILE_SIZE;
+                this.displayName = '🌿 Кусты';
+                this.description = 'Танки прячутся внутри. Пули пролетают.';
             }
             
             draw() {
@@ -1228,6 +1360,8 @@
                 this.y = y;
                 this.width = TILE_SIZE;
                 this.height = TILE_SIZE;
+                this.displayName = '💧 Вода';
+                this.description = 'Непроходима для танков. Пули пролетают.';
             }
             
             draw() {
@@ -1256,6 +1390,8 @@
                 this.width = TILE_SIZE * 2;
                 this.height = TILE_SIZE * 2;
                 this.isDestroyed = false;
+                this.displayName = '🏠 Ваша база';
+                this.description = 'Главная цель врагов. Уничтожение = поражение.';
             }
 
             draw() {
@@ -1523,21 +1659,17 @@
             }
         }
         
-        // Создание кэшированного фона земли
         function createBackground() {
             backgroundCanvas = document.createElement('canvas');
             backgroundCanvas.width = canvas.width;
             backgroundCanvas.height = canvas.height;
             const bgCtx = backgroundCanvas.getContext('2d');
             
-            // Базовый цвет земли
             bgCtx.fillStyle = '#3a5520';
             bgCtx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Текстура с вариациями по тайлам
             for (let x = 0; x < canvas.width; x += TILE_SIZE) {
                 for (let y = 0; y < canvas.height; y += TILE_SIZE) {
-                    // Псевдослучайный seed на основе координат
                     let seed = Math.abs((x * 73856093) ^ (y * 19349663));
                     const r1 = (seed % 1000) / 1000;
                     seed = (seed * 9301 + 49297) % 233280;
@@ -1545,7 +1677,6 @@
                     seed = (seed * 9301 + 49297) % 233280;
                     const r3 = (seed % 1000) / 1000;
                     
-                    // Вариация оттенка тайла
                     const variation = Math.floor(r1 * 16) - 8;
                     const baseR = 58 + variation;
                     const baseG = 85 + variation;
@@ -1553,28 +1684,23 @@
                     bgCtx.fillStyle = `rgb(${baseR}, ${baseG}, ${baseB})`;
                     bgCtx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
                     
-                    // Тонкая граница тайла (сетка)
                     bgCtx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
                     bgCtx.lineWidth = 1;
                     bgCtx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                     
-                    // Декоративные элементы
                     if (r2 < 0.25) {
-                        // Тёмное пятно (камень/земля)
                         bgCtx.fillStyle = 'rgba(30, 40, 15, 0.4)';
                         bgCtx.beginPath();
                         bgCtx.arc(x + r1 * TILE_SIZE, y + r2 * TILE_SIZE, 1.5 + r3, 0, Math.PI * 2);
                         bgCtx.fill();
                     }
                     if (r2 > 0.75) {
-                        // Светлая травинка
                         bgCtx.fillStyle = 'rgba(120, 180, 60, 0.35)';
                         bgCtx.beginPath();
                         bgCtx.arc(x + r3 * TILE_SIZE, y + r1 * TILE_SIZE, 1 + r2, 0, Math.PI * 2);
                         bgCtx.fill();
                     }
                     if (r3 < 0.1) {
-                        // Мелкий камушек
                         bgCtx.fillStyle = 'rgba(90, 80, 60, 0.6)';
                         bgCtx.beginPath();
                         bgCtx.arc(x + r1 * TILE_SIZE, y + r2 * TILE_SIZE, 1.5, 0, Math.PI * 2);
@@ -1674,7 +1800,6 @@
 
             spawnEnemies();
             
-            // Создаём кэшированный фон после создания карты
             createBackground();
         }
 
@@ -1698,13 +1823,8 @@
             }
         }
 
+        // Улучшенный спавн: псевдорандом с проверкой занятости и weighting по расстоянию до базы
         function spawnEnemies() {
-            const spawnPoints = [
-                {x: 1 * TILE_SIZE, y: 1 * TILE_SIZE},
-                {x: 11 * TILE_SIZE, y: 1 * TILE_SIZE},
-                {x: 21 * TILE_SIZE, y: 1 * TILE_SIZE}
-            ];
-            
             const levelData = LEVEL_MAPS[Math.min(gameState.level - 1, LEVEL_MAPS.length - 1)];
             const availableTypes = levelData.enemyTypes;
             
@@ -1712,16 +1832,78 @@
             const remainingToSpawn = gameState.maxEnemies - gameState.enemyCount;
             const toSpawn = Math.min(3 - currentEnemies, remainingToSpawn);
             
+            if (toSpawn <= 0) return;
+            
+            // Координаты базы
+            let baseCx = canvas.width / 2;
+            let baseCy = canvas.height - TILE_SIZE * 2;
+            if (gameState.base) {
+                baseCx = gameState.base.x + gameState.base.width / 2;
+                baseCy = gameState.base.y + gameState.base.height / 2;
+            }
+            
+            // Максимальное расстояние (диагональ) для нормализации
+            const maxDistSq = canvas.width * canvas.width + canvas.height * canvas.height;
+            
+            // Собираем все свободные клетки в верхней части поля (чтобы враги спавнились далеко от базы)
+            const maxSpawnY = canvas.height * 0.45; // верхние 45% карты
+            const possibleSpawns = [];
+            
+            for (let row = 1; row < Math.floor(maxSpawnY / TILE_SIZE); row++) {
+                for (let col = 1; col < GRID_SIZE - 1; col++) {
+                    const x = col * TILE_SIZE;
+                    const y = row * TILE_SIZE;
+                    
+                    if (!isSpawnPointClear(x, y)) continue;
+                    
+                    // R² до базы
+                    const dx = (x + TILE_SIZE / 2) - baseCx;
+                    const dy = (y + TILE_SIZE / 2) - baseCy;
+                    const distSq = dx * dx + dy * dy;
+                    const normalizedDist = distSq / maxDistSq; // 0..1
+                    
+                    // Вероятность спавна пропорциональна расстоянию (чем дальше от базы, тем выше)
+                    // Используем квадрат для более резкого распределения
+                    const weight = Math.pow(normalizedDist, 1.5) * 100 + 1;
+                    
+                    possibleSpawns.push({ x, y, weight });
+                }
+            }
+            
+            if (possibleSpawns.length === 0) return;
+            
+            // Выбираем точки weighted random без повторений
+            const usedIndices = new Set();
+            
             for (let i = 0; i < toSpawn; i++) {
-                const point = spawnPoints[i % spawnPoints.length];
+                // Пересчитываем общий вес с учётом исключённых
+                let totalWeight = 0;
+                possibleSpawns.forEach((s, idx) => {
+                    if (!usedIndices.has(idx)) totalWeight += s.weight;
+                });
                 
-                if (!isSpawnPointClear(point.x, point.y)) {
-                    continue;
+                if (totalWeight === 0) break;
+                
+                let random = Math.random() * totalWeight;
+                let chosenIdx = 0;
+                let chosen = null;
+                
+                for (let j = 0; j < possibleSpawns.length; j++) {
+                    if (usedIndices.has(j)) continue;
+                    random -= possibleSpawns[j].weight;
+                    if (random <= 0) {
+                        chosen = possibleSpawns[j];
+                        chosenIdx = j;
+                        break;
+                    }
                 }
                 
+                if (!chosen) break;
+                
+                usedIndices.add(chosenIdx);
+                
                 const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-                const enemy = new Tank(point.x, point.y, DIRECTIONS.DOWN, false, type);
-                gameState.enemies.push(enemy);
+                gameState.enemies.push(new Tank(chosen.x, chosen.y, DIRECTIONS.DOWN, false, type));
             }
         }
         
@@ -1794,35 +1976,17 @@
         }
 
         function draw() {
-            // Фон/земля
             drawBackground();
-
-            // Вода рисуется поверх земли
             gameState.waters.forEach(water => water.draw());
-            
-            // Стены
             gameState.walls.forEach(wall => wall.draw());
-
-            // База
             if (gameState.base) gameState.base.draw();
-
-            // Бонусы
             gameState.bonuses.forEach(bonus => bonus.draw());
-            
-            // Пули
             gameState.bullets.forEach(bullet => bullet.draw());
-            
-            // Танки
             gameState.enemies.forEach(enemy => enemy.draw());
-
             if (gameState.player && gameState.player.isActive) {
                 gameState.player.draw();
             }
-
-            // Кусты рисуются поверх танков (танки прячутся в кустах)
             gameState.bushes.forEach(bush => bush.draw());
-            
-            // HUD бонусов
             drawBuffsHUD();
         }
 
@@ -1862,6 +2026,7 @@
             }
             
             gameOverScreen.classList.add('show');
+            tooltip.classList.remove('show');
         }
         
         function hideGameOver() {
@@ -2108,6 +2273,204 @@
                 commanderComment.classList.remove('show');
             }
         }
+        
+        // ==================== СИСТЕМА TOOLTIP'ОВ ====================
+        function handleCanvasMouseMove(e) {
+            if (gameState.gameOver) {
+                hideTooltip();
+                return;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            
+            let info = null;
+            
+            // Приоритет: бонусы > враги > игрок > база > стены > кусты > вода
+            
+            // 1. Бонусы
+            if (!info) {
+                for (const bonus of gameState.bonuses) {
+                    if (!bonus.isActive) continue;
+                    if (mx >= bonus.x && mx <= bonus.x + bonus.width && 
+                        my >= bonus.y && my <= bonus.y + bonus.height) {
+                        const remaining = Math.max(0, bonus.lifetime - (Date.now() - bonus.spawnTime));
+                        const sec = Math.ceil(remaining / 1000);
+                        info = {
+                            emoji: bonus.type.emoji,
+                            title: bonus.type.displayName,
+                            stats: [
+                                { label: 'Осталось', value: `${sec}с` }
+                            ],
+                            desc: bonus.type.description
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            // 2. Враги
+            if (!info) {
+                for (const enemy of gameState.enemies) {
+                    if (!enemy.isActive) continue;
+                    if (mx >= enemy.x && mx <= enemy.x + enemy.width && 
+                        my >= enemy.y && my <= enemy.y + enemy.height) {
+                        const typeInfo = ENEMY_TYPES[enemy.enemyTypeKey];
+                        info = {
+                            emoji: '',
+                            title: typeInfo.displayName,
+                            stats: [
+                                { label: 'HP', value: `${enemy.hp}/${enemy.maxHp}` },
+                                { label: 'Очки', value: `${enemy.score}` },
+                                { label: 'Скорость', value: `${enemy.baseSpeed.toFixed(1)}` }
+                            ],
+                            desc: typeInfo.description
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            // 3. Игрок
+            if (!info && gameState.player && gameState.player.isActive) {
+                if (mx >= gameState.player.x && mx <= gameState.player.x + gameState.player.width && 
+                    my >= gameState.player.y && my <= gameState.player.y + gameState.player.height) {
+                    info = {
+                        emoji: '🟢',
+                        title: 'Ваш танк',
+                        stats: [
+                            { label: 'HP', value: `${gameState.player.hp}` },
+                            { label: 'Жизни', value: `${gameState.lives}` }
+                        ],
+                        desc: 'Используйте стрелки для движения, пробел для стрельбы.'
+                    };
+                }
+            }
+            
+            // 4. База
+            if (!info && gameState.base && !gameState.base.isDestroyed) {
+                if (mx >= gameState.base.x && mx <= gameState.base.x + gameState.base.width && 
+                    my >= gameState.base.y && my <= gameState.base.y + gameState.base.height) {
+                    info = {
+                        emoji: '🏠',
+                        title: gameState.base.displayName,
+                        stats: [],
+                        desc: gameState.base.description
+                    };
+                }
+            }
+            
+            // 5. Стены
+            if (!info) {
+                for (const wall of gameState.walls) {
+                    if (wall.hp <= 0) continue;
+                    if (mx >= wall.x && mx <= wall.x + wall.width && 
+                        my >= wall.y && my <= wall.y + wall.height) {
+                        const hpText = wall.hp === Infinity ? '∞' : `${wall.hp}/${wall.maxHp}`;
+                        info = {
+                            emoji: '',
+                            title: wall.displayName,
+                            stats: [
+                                { label: 'Прочность', value: hpText }
+                            ],
+                            desc: wall.description
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            // 6. Кусты
+            if (!info) {
+                for (const bush of gameState.bushes) {
+                    if (mx >= bush.x && mx <= bush.x + bush.width && 
+                        my >= bush.y && my <= bush.y + bush.height) {
+                        info = {
+                            emoji: '',
+                            title: bush.displayName,
+                            stats: [],
+                            desc: bush.description
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            // 7. Вода
+            if (!info) {
+                for (const water of gameState.waters) {
+                    if (mx >= water.x && mx <= water.x + water.width && 
+                        my >= water.y && my <= water.y + water.height) {
+                        info = {
+                            emoji: '',
+                            title: water.displayName,
+                            stats: [],
+                            desc: water.description
+                        };
+                        break;
+                    }
+                }
+            }
+            
+            if (info) {
+                showTooltip(info, e.clientX, e.clientY);
+            } else {
+                hideTooltip();
+            }
+        }
+        
+        function showTooltip(info, mouseX, mouseY) {
+            let html = `
+                <div class="tooltip-header">
+                    ${info.emoji ? `<span class="tooltip-emoji">${info.emoji}</span>` : ''}
+                    <span class="tooltip-title">${info.title}</span>
+                </div>
+            `;
+            
+            if (info.stats && info.stats.length > 0) {
+                html += '<div class="tooltip-desc">';
+                info.stats.forEach(stat => {
+                    html += `<div class="tooltip-stat">
+                        <span class="tooltip-stat-label">${stat.label}:</span>
+                        <span class="tooltip-stat-value">${stat.value}</span>
+                    </div>`;
+                });
+                if (info.desc) {
+                    html += `<div style="margin-top:6px;color:#bbb;font-size:0.85rem;border-top:1px dashed rgba(255,204,0,0.2);padding-top:6px;">${info.desc}</div>`;
+                }
+                html += '</div>';
+            } else if (info.desc) {
+                html += `<div class="tooltip-desc">${info.desc}</div>`;
+            }
+            
+            tooltip.innerHTML = html;
+            tooltip.classList.add('show');
+            
+            // Позиционирование с учётом границ экрана
+            const ttRect = tooltip.getBoundingClientRect();
+            let x = mouseX + 15;
+            let y = mouseY + 15;
+            
+            if (x + ttRect.width > window.innerWidth - 10) {
+                x = mouseX - ttRect.width - 15;
+            }
+            if (y + ttRect.height > window.innerHeight - 10) {
+                y = mouseY - ttRect.height - 15;
+            }
+            
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        }
+        
+        function hideTooltip() {
+            tooltip.classList.remove('show');
+        }
+        
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseleave', hideTooltip);
 
         function initMobileControls() {
             const joystickBaseRect = joystick.getBoundingClientRect();

@@ -57,12 +57,15 @@ export class Bullet {
             if (rectsOverlap(bulletRect, wall.getRect())) {
                 if (this.ricochet) {
                     this._performRicochet(wall.getRect());
+                    onHit.wall?.(wall, true); // true = рикошет, стена не повреждена
                     return;
                 } else {
                     if (wall.type === 'steel') {
+                        onHit.wall?.(wall, false);
                         this.isActive = false;
                     } else {
                         wall.hp--;
+                        onHit.wall?.(wall, false);
                         this.isActive = false;
                     }
                     return;

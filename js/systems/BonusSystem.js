@@ -6,10 +6,8 @@ import { EVENTS } from '../config/constants.js';
 export function maybeDropBonus(tank, state) {
     const chance = tank.dropChance || 0.15;
     if (Math.random() > chance) return;
-
     const keys = Object.keys(BONUS_TYPES);
     const type = BONUS_TYPES[keys[Math.floor(Math.random() * keys.length)]];
-
     const blocked =
         state.walls.some(w => w.hp > 0 &&
             w.x < tank.x + 26 && w.x + w.width > tank.x &&
@@ -17,15 +15,20 @@ export function maybeDropBonus(tank, state) {
         state.waters.some(w =>
             w.x < tank.x + 26 && w.x + w.width > tank.x &&
             w.y < tank.y + 26 && w.y + w.height > tank.y);
-
-    if (!blocked) {
-        state.bonuses.push(new Bonus(tank.x, tank.y, type));
-    }
+    if (!blocked) state.bonuses.push(new Bonus(tank.x, tank.y, type));
 }
 
-export function applyBonusEffect(bonus, state) {
+export function applyBonusEffect(bonus, state, particles) {
     const now = Date.now();
     const t = bonus.type;
+
+    // Эффект подбора
+    particles.emitBonusPickup(
+        bonus.x + bonus.width / 2,
+        bonus.y + bonus.height / 2,
+        t.color
+    );
+
     switch (t.name) {
         case 'shield':
         case 'triple':
@@ -38,6 +41,9 @@ export function applyBonusEffect(bonus, state) {
         case 'grenade':
             state.enemies.forEach(e => {
                 if (e.isActive) {
+                    const tx = e.x + e.width / 2;
+                    const ty = e.y + e.height / 2;
+                    particles.emitExplosion(tx, ty, 20);
                     e.isActive = false;
                     state.score += e.score || 100;
                     state.enemyCount++;
@@ -52,9 +58,6 @@ export function applyBonusEffect(bonus, state) {
     eventBus.emit(EVENTS.BONUS_COLLECTED, bonus);
 }
 
-/**
- * Система управления баффами (таймеры).
- */
 export class BuffSystem {
     constructor(state) { this.state = state; }
     update() {

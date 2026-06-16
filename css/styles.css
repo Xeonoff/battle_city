@@ -27,7 +27,16 @@ h1 {
     overflow: hidden; box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
 }
 
-canvas { display: block; background-color: #000; width: 100%; height: 100%; cursor: crosshair; }
+canvas {
+    display: block;
+    background-color: #000;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
 
 .info-panel {
     display: flex; justify-content: space-between; align-items: center;
@@ -171,3 +180,4 @@ canvas { display: block; background-color: #000; width: 100%; height: 100%; curs
     .commander-comment { top: 10px; max-width: 90%; padding: 10px 15px; }
     .commander-comment p { font-size: 1rem; }
 }
+

@@ -1,10 +1,12 @@
 import { DIRECTIONS } from '../config/constants.js';
 
 export class InputManager {
-    constructor(state) {
+    constructor(state, canvas) {
         this.state = state;
+        this.canvas = canvas;
         this.keys = {};
         this._bindKeyboard();
+        this._bindMouse();
         this._bindMobile();
     }
 
@@ -26,10 +28,22 @@ export class InputManager {
         });
     }
 
+    _bindMouse() {
+        // ЛКМ — стрельба
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && this.state.player?.isActive) {
+                this.state.player.shoot(this.state);
+            }
+        });
+        // Блокируем контекстное меню ПКМ
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        // Блокируем drag (чтобы не тянуть canvas как картинку)
+        this.canvas.addEventListener('dragstart', (e) => e.preventDefault());
+    }
+
     poll() {
         const p = this.state.player;
         if (!p || !p.isActive) return;
-
         if (this.keys['ArrowUp'] || this.keys['w']) {
             p.direction = DIRECTIONS.UP; p.isMoving = true;
         } else if (this.keys['ArrowRight'] || this.keys['d']) {

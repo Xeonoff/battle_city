@@ -2,12 +2,12 @@ import { GameState } from './core/GameState.js';
 import { GameLoop } from './core/GameLoop.js';
 import { eventBus } from './core/EventBus.js';
 import { EVENTS } from './config/constants.js';
-import { Tank } from './entities/Tank.js';
 
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { SpawnSystem } from './systems/SpawnSystem.js';
 import { BuffSystem, applyBonusEffect } from './systems/BonusSystem.js';
 import { LevelSystem } from './systems/LevelSystem.js';
+import { ParticleSystem } from './systems/ParticleSystem.js';
 
 import { Renderer } from './rendering/Renderer.js';
 import { InputManager } from './input/InputManager.js';
@@ -15,20 +15,23 @@ import { TooltipController } from './input/TooltipController.js';
 import { LLMService } from './services/LLMService.js';
 import { UIManager } from './ui/UIManager.js';
 import { LEVEL_MAPS } from './config/levels.js';
+import { Tank } from './entities/Tank.js';
 
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.state = new GameState();
 
-        this.renderer = new Renderer(this.canvas, this.state);
+        this.particles = new ParticleSystem();
+
+        this.renderer = new Renderer(this.canvas, this.state, this.particles);
         this.ui = new UIManager(this.state);
-        this.input = new InputManager(this.state);
+        this.input = new InputManager(this.state, this.canvas);
         this.tooltip = new TooltipController(this.canvas, this.state);
         this.llm = new LLMService(this.state);
 
         this.levelSystem = new LevelSystem(this.state, this.canvas);
-        this.collision = new CollisionSystem(this.state);
+        this.collision = new CollisionSystem(this.state, this.particles);
         this.spawn = new SpawnSystem(this.state, this.canvas);
         this.buffs = new BuffSystem(this.state);
 
@@ -67,14 +70,15 @@ class Game {
     _loadLevel() {
         this.levelSystem.load();
         this.renderer.rebuildBackground();
+        this.particles.clear();
         this.ui.updateHUD();
     }
 
     update(dt) {
-        if (!this.state.isRunning) {
-            // Даже после game over продолжаем рендерить последний кадр
-            return;
-        }
+        // Партиклы обновляются даже после game over (чтобы последние взрывы доыгрались)
+        this.particles.update(dt);
+
+        if (!this.state.isRunning) return;
 
         this.input.poll();
         this.buffs.update();
@@ -88,7 +92,7 @@ class Game {
         this.collision.update(dt);
 
         this.state.bonuses.forEach(b => b.update(this.state, (bonus) => {
-            applyBonusEffect(bonus, this.state);
+            applyBonusEffect(bonus, this.state, this.particles);
         }));
         this.state.bonuses = this.state.bonuses.filter(b => b.isActive);
 
@@ -111,7 +115,11 @@ class Game {
     _respawnPlayer() {
         setTimeout(() => {
             if (this.state.gameOver) return;
-            this.state.player = new Tank(this.canvas.width / 2 - 12, this.canvas.height - 26 * 4, 0, true);
+            this.state.player = new Tank(
+                this.canvas.width / 2 - 12,
+                this.canvas.height - 26 * 4,
+                0, true
+            );
             this.state.player.spawnInvincible = 2500;
             this.state.playerBuffs.shield.active = true;
             this.state.playerBuffs.shield.endTime = Date.now() + 3000;
@@ -157,7 +165,6 @@ class Game {
     }
 }
 
-// Запуск
 window.addEventListener('load', () => {
     const game = new Game();
     game.start();

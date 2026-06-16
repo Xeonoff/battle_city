@@ -1,14 +1,12 @@
 import { BackgroundRenderer } from './BackgroundRenderer.js';
 import { HUDRenderer } from './HUDRenderer.js';
 
-/**
- * Оркестратор рендеринга — собирает всё в нужном порядке.
- */
 export class Renderer {
-    constructor(canvas, state) {
+    constructor(canvas, state, particles) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.state = state;
+        this.particles = particles;
         this.background = new BackgroundRenderer(canvas);
         this.hud = new HUDRenderer();
     }
@@ -25,6 +23,10 @@ export class Renderer {
         s.bullets.forEach(b => b.draw(ctx));
         s.enemies.forEach(e => e.draw(ctx, s));
         if (s.player && s.player.isActive) s.player.draw(ctx, s);
+
+        // Партиклы ПЕРЕД кустами — чтобы танки в кустах "вспыхивали" внутри
+        this.particles.draw(ctx);
+
         s.bushes.forEach(b => b.draw(ctx));
         this.hud.draw(ctx, s);
     }

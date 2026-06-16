@@ -20,7 +20,7 @@ export class Wall {
                 this.description = 'Неразрушимая. Только рикошет.';
                 break;
             case 'fortified':
-                this.maxHp = 3;
+                this.maxHp = 4;
                 this.displayName = '🔲 Укреплённая стена';
                 this.description = 'Бетон с арматурой. 3 попадания.';
                 break;

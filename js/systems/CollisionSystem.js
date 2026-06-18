@@ -1,6 +1,7 @@
 import { eventBus } from '../core/EventBus.js';
 import { EVENTS } from '../config/constants.js';
 import { maybeDropBonus } from './BonusSystem.js';
+import { audioManager } from '../main.js';
 
 export class CollisionSystem {
     constructor(state, particles) {
@@ -17,18 +18,23 @@ export class CollisionSystem {
                     const hy = bullet.y + bullet.height / 2;
                     if (isRicochet) {
                         this.particles.emitSparks(hx, hy, 8);
+                        audioManager.play('ricochet');
                     } else if (wall.type === 'steel') {
                         this.particles.emitSparks(hx, hy, 18);
+                        audioManager.play('ricochet');
                     } else if (wall.type === 'brick') {
                         this.particles.emitBrickDebris(hx, hy, 10);
+                        audioManager.play('break');
                     } else if (wall.type === 'fortified') {
                         this.particles.emitConcreteDust(hx, hy, 12);
+                        audioManager.play('break');
                     }
                 },
                 base: () => {
                     const bx = this.state.base.x + this.state.base.width / 2;
                     const by = this.state.base.y + this.state.base.height / 2;
                     this.particles.emitExplosion(bx, by, 60);
+                    audioManager.play('explosion');
                     this.state.base.isDestroyed = true;
                     eventBus.emit(EVENTS.BASE_DESTROYED);
                 },
@@ -36,6 +42,7 @@ export class CollisionSystem {
                     const hx = bullet.x + bullet.width / 2;
                     const hy = bullet.y + bullet.height / 2;
                     this.particles.emitSparks(hx, hy, 5);
+                    audioManager.play('collision');
 
                     tank.hp--;
                     tank.flashTimer = 10;
@@ -43,6 +50,7 @@ export class CollisionSystem {
                         const tx = tank.x + tank.width / 2;
                         const ty = tank.y + tank.height / 2;
                         this.particles.emitExplosion(tx, ty, 30);
+                        audioManager.play('explosion');
                         tank.isActive = false;
                         this.state.score += tank.score || 100;
                         this.state.enemyCount++;
@@ -55,14 +63,21 @@ export class CollisionSystem {
                         const hx = bullet.x + bullet.width / 2;
                         const hy = bullet.y + bullet.height / 2;
                         this.particles.emitSparks(hx, hy, 10);
+                        audioManager.play('ricochet');
                         return;
                     }
-                    tank.isActive = false;
-                    this.state.lives--;
-                    const px = tank.x + tank.width / 2;
-                    const py = tank.y + tank.height / 2;
-                    this.particles.emitExplosion(px, py, 40);
-                    eventBus.emit(EVENTS.PLAYER_HIT, { lives: this.state.lives });
+                    const killed = tank.takeDamage(1);
+                    if (killed) {
+                        tank.isActive = false;
+                        this.state.lives--;
+                        const px = tank.x + tank.width / 2;
+                        const py = tank.y + tank.height / 2;
+                        this.particles.emitExplosion(px, py, 40);
+                        audioManager.play('explosion');
+                        eventBus.emit(EVENTS.PLAYER_HIT, { lives: this.state.lives });
+                    } else {
+                        audioManager.play('hit');
+                    }
                 }
             });
         });

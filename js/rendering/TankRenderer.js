@@ -116,12 +116,10 @@ export class TankRenderer {
     _drawPlayer(ctx, tank) {
         const w = tank.width, h = tank.height;
 
-        // Гусеницы (тёмно-серые с насечками)
         ctx.fillStyle = '#2a2a2a';
         ctx.fillRect(0, 2, 4, h - 4);
         ctx.fillRect(w - 4, 2, 4, h - 4);
 
-        // Насечки на гусеницах (анимированные)
         ctx.fillStyle = '#1a1a1a';
         const offset = (this.time / 50) % 4;
         for (let i = 0; i < h - 4; i += 4) {
@@ -130,7 +128,6 @@ export class TankRenderer {
             ctx.fillRect(w - 4, y, 4, 1);
         }
 
-        // Корпус (зелёный)
         ctx.fillStyle = '#4CAF50';
         ctx.fillRect(4, 4, w - 8, h - 8);
 
@@ -168,7 +165,6 @@ export class TankRenderer {
         ctx.fillStyle = '#000';
         ctx.fillRect(w / 2 - 2, -4, 4, 2);
 
-        // Выхлоп при движении
         if (tank.isMoving) {
             const smokeAlpha = 0.3 + Math.random() * 0.3;
             ctx.fillStyle = `rgba(150, 150, 150, ${smokeAlpha})`;

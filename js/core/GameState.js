@@ -1,4 +1,4 @@
-import { PLAYER_LIVES } from '../config/constants.js';
+import { PLAYER_LIVES, PLAYER_HP } from '../config/constants.js';
 import { LEVEL_MAPS } from '../config/levels.js';
 
 /**
@@ -22,6 +22,7 @@ export class GameState {
 
         this.score = 0;
         this.lives = PLAYER_LIVES;
+        this.playerHp = PLAYER_HP;
         this.level = 1;
         this.enemyCount = 0;
         this.maxEnemies = LEVEL_MAPS[0].maxEnemies;
@@ -49,6 +50,7 @@ export class GameState {
     preserveForNextLevel(prevState) {
         this.score = prevState.score;
         this.lives = prevState.lives;
+        this.playerHp = prevState.playerHp;
         this.level = prevState.level + 1;
         this.llmEnabled = prevState.llmEnabled;
         this.playerBuffs = { ...prevState.playerBuffs };

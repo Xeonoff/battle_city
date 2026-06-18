@@ -1,9 +1,10 @@
-import { DIRECTIONS, TANK_SIZE, BASE_PLAYER_SPEED, BULLET_SIZE } from '../config/constants.js';
+import { DIRECTIONS, TANK_SIZE, BASE_PLAYER_SPEED, BULLET_SIZE, PLAYER_HP } from '../config/constants.js';
 import { ENEMY_TYPES } from '../config/enemyTypes.js';
 import { Bullet } from './Bullet.js';
 import { rectsOverlap } from '../core/utils.js';
 import { chooseBestDirection } from '../ai/EnemyAI.js';
 import { TankRenderer } from '../rendering/TankRenderer.js';
+import { audioManager } from '../main.js';
 
 // Общий экземпляр рендерера (синглтон для всей игры)
 const tankRenderer = new TankRenderer();
@@ -27,7 +28,8 @@ export class Tank {
 
         if (isPlayer) {
             this.type = 'PLAYER';
-            this.hp = 1;
+            this.hp = PLAYER_HP;
+            this.maxHp = PLAYER_HP;
             this.baseSpeed = BASE_PLAYER_SPEED;
             this.shootCooldownMs = 250;
             this.baseBulletSpeed = 7;
@@ -131,6 +133,8 @@ export class Tank {
         if (now - this.lastShotTime < this.shootCooldownMs) return;
         this.lastShotTime = now;
 
+        audioManager.play('fire');
+
         if (this.isPlayer && state.playerBuffs.triple.active) {
             this._shootMultiple(3, state);
         } else {
@@ -172,6 +176,13 @@ export class Tank {
         state.bullets.push(new Bullet(bx, by, direction, this.isPlayer, speed, ricochet));
     }
 
+    // 🆕 Метод получения урона
+    takeDamage(amount = 1) {
+        this.hp -= amount;
+        this.flashTimer = 10;
+        return this.hp <= 0;
+    }
+    
     draw(ctx, state) {
         tankRenderer.draw(ctx, this, state);
     }

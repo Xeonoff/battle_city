@@ -14,8 +14,11 @@ import { InputManager } from './input/InputManager.js';
 import { TooltipController } from './input/TooltipController.js';
 import { LLMService } from './services/LLMService.js';
 import { UIManager } from './ui/UIManager.js';
+import { AudioManager } from './services/AudioManager.js';
 import { LEVEL_MAPS } from './config/levels.js';
 import { Tank } from './entities/Tank.js';
+
+export const audioManager = new AudioManager();
 
 class Game {
     constructor() {
@@ -59,9 +62,16 @@ class Game {
             this.ui.updateLlmButton(this.state.llmEnabled);
             if (!this.state.llmEnabled) this.ui.hideComment();
         });
+
+        this.ui.els.muteBtn.addEventListener('click', () => {
+            const muted = !audioManager.isMuted();
+            audioManager.setMuted(muted);
+            this.ui.updateMuteButton(muted);
+        });
     }
 
-    start() {
+    async start() {
+        await audioManager.load();
         this._loadLevel();
         this.loop.start();
         setTimeout(() => this.ui.showComment("Внимание! Защитите базу от вражеских танков!"), 1000);
@@ -150,6 +160,7 @@ class Game {
         const prev = {
             score: this.state.score,
             lives: this.state.lives,
+            playerHp: this.state.playerHp,
             level: this.state.level,
             llmEnabled: this.state.llmEnabled,
             playerBuffs: this.state.playerBuffs

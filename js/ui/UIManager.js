@@ -1,4 +1,5 @@
 import { LEVEL_MAPS } from '../config/levels.js';
+import { audioManager } from '../main.js';
 
 export class UIManager {
     constructor(state) {
@@ -10,6 +11,7 @@ export class UIManager {
             score: document.getElementById('score-counter'),
             fps: document.getElementById('fpsIndicator'),
             llmBtn: document.getElementById('toggleLlmBtn'),
+            muteBtn: document.getElementById('muteBtn'),
             gameOver: document.getElementById('gameOverScreen'),
             gameOverTitle: document.getElementById('gameOverTitle'),
             gameOverMsg: document.getElementById('gameOverMessage'),
@@ -37,6 +39,11 @@ export class UIManager {
         this.els.llmBtn.classList.toggle('off', !enabled);
     }
 
+    updateMuteButton(muted) {
+        this.els.muteBtn.textContent = muted ? '🔇 Звук' : '🔊 Звук';
+        this.els.muteBtn.classList.toggle('off', muted);
+    }
+    
     showGameOver(won, onNextLevel, onRestart) {
         const s = this.state;
         this.els.gameOver.classList.remove('win', 'level-up');

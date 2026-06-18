@@ -2,6 +2,7 @@ import { BONUS_TYPES } from '../config/bonusTypes.js';
 import { Bonus } from '../entities/Environment.js';
 import { eventBus } from '../core/EventBus.js';
 import { EVENTS } from '../config/constants.js';
+import { audioManager } from '../main.js';
 
 export function maybeDropBonus(tank, state) {
     const chance = tank.dropChance || 0.15;
@@ -22,7 +23,8 @@ export function applyBonusEffect(bonus, state, particles) {
     const now = Date.now();
     const t = bonus.type;
 
-    // Эффект подбора
+    audioManager.play('pickup');
+
     particles.emitBonusPickup(
         bonus.x + bonus.width / 2,
         bonus.y + bonus.height / 2,
@@ -44,6 +46,7 @@ export function applyBonusEffect(bonus, state, particles) {
                     const tx = e.x + e.width / 2;
                     const ty = e.y + e.height / 2;
                     particles.emitExplosion(tx, ty, 20);
+                    audioManager.play('explosion');
                     e.isActive = false;
                     state.score += e.score || 100;
                     state.enemyCount++;

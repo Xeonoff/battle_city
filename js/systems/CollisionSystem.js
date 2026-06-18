@@ -24,10 +24,16 @@ export class CollisionSystem {
                         audioManager.play('ricochet');
                     } else if (wall.type === 'brick') {
                         this.particles.emitBrickDebris(hx, hy, 10);
-                        audioManager.play('break');
+                        if (wall.hp <= 0) {
+                            audioManager.play('break');
+                        }
+                        audioManager.play('hit');
                     } else if (wall.type === 'fortified') {
                         this.particles.emitConcreteDust(hx, hy, 12);
-                        audioManager.play('break');
+                        if (wall.hp <= 0) {
+                            audioManager.play('break');
+                        }
+                        audioManager.play('hit');
                     }
                 },
                 base: () => {

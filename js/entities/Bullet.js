@@ -2,13 +2,14 @@ import { DIRECTIONS, BULLET_SIZE } from '../config/constants.js';
 import { rectsOverlap } from '../core/utils.js';
 
 export class Bullet {
-    constructor(x, y, direction, isPlayer, speed = 7, ricochet = false) {
+    constructor(x, y, direction, isPlayer, speed = 7, ricochet = false, bulletType = 'normal') {
         this.x = x;
         this.y = y;
         this.isPlayer = isPlayer;
         this.width = BULLET_SIZE;
         this.height = BULLET_SIZE;
         this.isActive = true;
+        this.bulletType = bulletType;
         this.ricochet = ricochet;
         this.bounces = 0;
         this.maxBounces = ricochet ? 10 : 0;
@@ -57,15 +58,15 @@ export class Bullet {
             if (rectsOverlap(bulletRect, wall.getRect())) {
                 if (this.ricochet) {
                     this._performRicochet(wall.getRect());
-                    onHit.wall?.(wall, true); // true = рикошет, стена не повреждена
+                    onHit.wall?.(wall, true, this); // 🆕 + this
                     return;
                 } else {
                     if (wall.type === 'steel') {
-                        onHit.wall?.(wall, false);
+                        onHit.wall?.(wall, false, this); // 🆕 + this
                         this.isActive = false;
                     } else {
                         wall.hp--;
-                        onHit.wall?.(wall, false);
+                        onHit.wall?.(wall, false, this); // 🆕 + this
                         this.isActive = false;
                     }
                     return;

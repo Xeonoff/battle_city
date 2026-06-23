@@ -31,6 +31,14 @@ export const ENEMY_TYPES = Object.freeze({
         color: '#FF6F00', turretColor: '#E65100',
         shootCooldownMs: 600, score: 400,
         bulletSpeed: BULLET_SPEED * 1.5, dropChance: 0.4,
-        description: 'Стреляет быстро и мощно. 2 HP.'
+        description: 'Стреляет двумя снарядами параллельно.'
+    },
+    FLAMETHROWER: { // 🆕
+        name: 'flamethrower', displayName: '🔥 Огнемётчик',
+        speed: BASE_ENEMY_SPEED * 0.5, hp: 2,
+        color: '#263238', turretColor: '#263238',
+        shootCooldownMs: 3000, score: 500,
+        bulletSpeed: 0, dropChance: 0.5,
+        description: 'Медленный. Стреляет потоком огня на 4 тайла.'
     }
 });

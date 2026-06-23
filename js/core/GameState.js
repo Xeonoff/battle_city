@@ -1,10 +1,6 @@
 import { PLAYER_LIVES, PLAYER_HP } from '../config/constants.js';
 import { LEVEL_MAPS } from '../config/levels.js';
 
-/**
- * Централизованное хранилище состояния игры.
- * Не содержит логики — только данные.
- */
 export class GameState {
     constructor() {
         this.reset();
@@ -19,6 +15,10 @@ export class GameState {
         this.waters = [];
         this.bonuses = [];
         this.base = null;
+
+        // 🆕 Новые сущности
+        this.materials = [];
+        this.flameStreams = [];
 
         this.score = 0;
         this.lives = PLAYER_LIVES;
@@ -41,6 +41,9 @@ export class GameState {
             ricochet: { active: false, endTime: 0, duration: 0 },
             star: { active: false, endTime: 0, duration: 0 }
         };
+
+        // 🆕 Инвентарь (ссылка устанавливается в main.js)
+        this.inventory = null;
     }
 
     get isRunning() {

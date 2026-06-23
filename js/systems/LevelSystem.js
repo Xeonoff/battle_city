@@ -20,7 +20,7 @@ export class LevelSystem {
         s.maxEnemies = data.maxEnemies;
 
         let baseX = 0, baseY = 0;
-        let playerX = 0, playerY = 0;
+        let playerX = -1, playerY = -1;
 
         for (let row = 0; row < GRID_SIZE; row++) {
             const line = data.map[row] || '';
@@ -43,10 +43,12 @@ export class LevelSystem {
         }
 
         if (baseX || baseY) s.base = new Base(baseX, baseY);
-        if (!playerX && !playerY) {
+
+        if (playerX === -1 || playerY === -1) {
             playerX = this.canvas.width / 2 - 12;
             playerY = this.canvas.height - TILE_SIZE * 4;
         }
+
         s.player = new Tank(playerX, playerY, DIRECTIONS.UP, true);
         s.player.spawnInvincible = 2000;
     }

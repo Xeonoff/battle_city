@@ -1,12 +1,12 @@
 import { DIRECTIONS, TANK_SIZE, BASE_PLAYER_SPEED, BULLET_SIZE, PLAYER_HP } from '../config/constants.js';
 import { ENEMY_TYPES } from '../config/enemyTypes.js';
 import { Bullet } from './Bullet.js';
+import { FlameStream } from './FlameStream.js';
 import { rectsOverlap } from '../core/utils.js';
 import { chooseBestDirection } from '../ai/EnemyAI.js';
 import { TankRenderer } from '../rendering/TankRenderer.js';
 import { audioManager } from '../main.js';
 
-// Общий экземпляр рендерера (синглтон для всей игры)
 const tankRenderer = new TankRenderer();
 
 export class Tank {
@@ -68,7 +68,9 @@ export class Tank {
                 this.direction = chooseBestDirection(this, state);
             }
 
-            const shootChance = this.type === 'power' ? 0.035 : 0.02;
+            const shootChance = this.type === 'power' ? 0.035
+                : this.type === 'flamethrower' ? 0.01
+                : 0.02;
             if (Math.random() < shootChance * dt) {
                 this.shoot(state);
             }
@@ -135,11 +137,60 @@ export class Tank {
 
         audioManager.play('fire');
 
-        if (this.isPlayer && state.playerBuffs.triple.active) {
-            this._shootMultiple(3, state);
+        if (this.isPlayer) {
+            if (state.playerBuffs.triple.active) {
+                this._shootMultiple(3, state);
+            } else {
+                this._shootSingle(this.direction, state);
+            }
         } else {
-            this._shootSingle(this.direction, state);
+            switch (this.type) {
+                case 'power':
+                    this._shootDoubleParallel(state);
+                    break;
+                case 'flamethrower':
+                    this._shootFlame(state);
+                    break;
+                default:
+                    this._shootSingle(this.direction, state);
+            }
         }
+    }
+
+    _shootDoubleParallel(state) {
+        const offset = 4;
+        let bx1, by1, bx2, by2;
+
+        switch (this.direction) {
+            case DIRECTIONS.UP:
+                bx1 = this.x + this.width / 2 - offset - BULLET_SIZE / 2;
+                bx2 = this.x + this.width / 2 + offset - BULLET_SIZE / 2;
+                by1 = by2 = this.y - BULLET_SIZE;
+                break;
+            case DIRECTIONS.DOWN:
+                bx1 = this.x + this.width / 2 - offset - BULLET_SIZE / 2;
+                bx2 = this.x + this.width / 2 + offset - BULLET_SIZE / 2;
+                by1 = by2 = this.y + this.height;
+                break;
+            case DIRECTIONS.LEFT:
+                bx1 = bx2 = this.x - BULLET_SIZE;
+                by1 = this.y + this.height / 2 - offset - BULLET_SIZE / 2;
+                by2 = this.y + this.height / 2 + offset - BULLET_SIZE / 2;
+                break;
+            case DIRECTIONS.RIGHT:
+                bx1 = bx2 = this.x + this.width;
+                by1 = this.y + this.height / 2 - offset - BULLET_SIZE / 2;
+                by2 = this.y + this.height / 2 + offset - BULLET_SIZE / 2;
+                break;
+        }
+
+        state.bullets.push(new Bullet(bx1, by1, this.direction, false, this.baseBulletSpeed, false, 'power'));
+        state.bullets.push(new Bullet(bx2, by2, this.direction, false, this.baseBulletSpeed, false, 'power'));
+    }
+
+    _shootFlame(state) {
+        // Позиция старта потока — впереди танка
+        state.flameStreams.push(new FlameStream(this));
     }
 
     _shootMultiple(count, state) {
@@ -176,13 +227,12 @@ export class Tank {
         state.bullets.push(new Bullet(bx, by, direction, this.isPlayer, speed, ricochet));
     }
 
-    // 🆕 Метод получения урона
     takeDamage(amount = 1) {
         this.hp -= amount;
         this.flashTimer = 10;
         return this.hp <= 0;
     }
-    
+
     draw(ctx, state) {
         tankRenderer.draw(ctx, this, state);
     }

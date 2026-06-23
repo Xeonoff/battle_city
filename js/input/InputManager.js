@@ -1,4 +1,5 @@
 import { DIRECTIONS } from '../config/constants.js';
+import { audioManager } from '../main.js';
 
 export class InputManager {
     constructor(state, canvas) {
@@ -13,31 +14,51 @@ export class InputManager {
     _bindKeyboard() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key] = true;
+
+            // 🆕 Цифры 1-9 — переключение активного слота
+            if (e.key >= '1' && e.key <= '8') {
+                this.state.inventory.setActiveSlot(parseInt(e.key) - 1);
+                return;
+            }
+
             if (e.key === ' ' && this.state.player?.isActive) {
                 this.state.player.shoot(this.state);
             }
-            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',' '].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В',
+                 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
                 e.preventDefault();
             }
         });
+
         window.addEventListener('keyup', (e) => {
             this.keys[e.key] = false;
-            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В', 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (['ц', 'ф', 'ы', 'в', 'w', 'a', 's', 'd', 'Ц', 'Ф', 'Ы', 'В',
+                 'W', 'A', 'S', 'D', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 if (this.state.player) this.state.player.isMoving = false;
             }
         });
     }
 
     _bindMouse() {
-        // ЛКМ — стрельба
         this.canvas.addEventListener('mousedown', (e) => {
             if (e.button === 0 && this.state.player?.isActive) {
+                // ЛКМ — стрельба
                 this.state.player.shoot(this.state);
+            } else if (e.button === 2) {
+                // 🆕 ПКМ — постановка блока
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const canvasX = (e.clientX - rect.left) * scaleX;
+                const canvasY = (e.clientY - rect.top) * scaleY;
+
+                if (this.state.inventory.placeBlock(canvasX, canvasY)) {
+                    audioManager.play('collision');
+                }
             }
         });
-        // Блокируем контекстное меню ПКМ
+
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        // Блокируем drag (чтобы не тянуть canvas как картинку)
         this.canvas.addEventListener('dragstart', (e) => e.preventDefault());
     }
 

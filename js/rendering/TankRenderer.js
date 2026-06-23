@@ -40,6 +40,7 @@ export class TankRenderer {
                 case 'fast': this._drawFast(ctx, tank); break;
                 case 'heavy': this._drawHeavy(ctx, tank); break;
                 case 'power': this._drawPower(ctx, tank); break;
+                case 'flamethrower': this._drawFlamethrower(ctx, tank); break;
                 default: this._drawBasic(ctx, tank);
             }
         }
@@ -443,7 +444,140 @@ export class TankRenderer {
         ctx.fillStyle = '#FFEB3B';
         ctx.fillRect(w / 2 - 1, -5, 2, 1);
     }
+    _drawFlamethrower(ctx, tank) {
+        const w = tank.width, h = tank.height;
 
+        // Массивные гусеницы
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 3, 4, h - 6);
+        ctx.fillRect(w - 4, 3, 4, h - 6);
+
+        // Насечки
+        ctx.fillStyle = '#000';
+        const offset = (this.time / 70) % 4;
+        for (let i = 0; i < h - 6; i += 4) {
+            const y = 3 + ((i + offset) % (h - 6));
+            ctx.fillRect(0, y, 4, 1);
+            ctx.fillRect(w - 4, y, 4, 1);
+        }
+
+        // Корпус (тёмно-красный)
+        ctx.fillStyle = '#B71C1C';
+        ctx.fillRect(4, 4, w - 8, h - 8);
+
+        // Огненные полосы-предупреждения (как у пожарной техники)
+        ctx.fillStyle = '#FF6F00';
+        ctx.fillRect(4, 7, w - 8, 1.5);
+        ctx.fillRect(4, h - 8, w - 8, 1.5);
+
+        // Предупреждающие полосы по диагонали (как на опасной технике)
+        ctx.fillStyle = '#FFC107';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(7 + i * 4, 10, 2, 3);
+            ctx.fillRect(7 + i * 4, h - 13, 2, 3);
+        }
+
+        // 🆕 БАКИ ДЛЯ ТОПЛИВА (по бокам корпуса)
+        // Левый бак
+        ctx.fillStyle = '#5D1F0A';
+        ctx.fillRect(5, 8, 2, h - 16);
+        ctx.fillStyle = '#FF5722';
+        ctx.fillRect(5, 10, 2, 2);
+        ctx.fillRect(5, h - 12, 2, 2);
+        // Правый бак
+        ctx.fillStyle = '#5D1F0A';
+        ctx.fillRect(w - 7, 8, 2, h - 16);
+        ctx.fillStyle = '#FF5722';
+        ctx.fillRect(w - 7, 10, 2, 2);
+        ctx.fillRect(w - 7, h - 12, 2, 2);
+
+        // Заклёпки на баках
+        ctx.fillStyle = '#2a0a0a';
+        ctx.beginPath();
+        ctx.arc(6, 13, 0.8, 0, Math.PI * 2);
+        ctx.arc(6, h - 13, 0.8, 0, Math.PI * 2);
+        ctx.arc(w - 6, 13, 0.8, 0, Math.PI * 2);
+        ctx.arc(w - 6, h - 13, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Круглая башня (тёмно-коричневая)
+        ctx.fillStyle = '#8B2500';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Внутренняя деталь башни
+        ctx.fillStyle = '#5D1F0A';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 🔥 ТРУБКА ОГНЕМЁТА (длинная, тонкая)
+        // Основание трубки (тёмное)
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(w / 2 - 1.5, -5, 3, 10);
+        // Сам ствол (медно-красный)
+        ctx.fillStyle = '#8B3A00';
+        ctx.fillRect(w / 2 - 1, -6, 2, 11);
+        // Сопло (расширение на конце)
+        ctx.fillStyle = '#3a1a0a';
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - 2.5, -7);
+        ctx.lineTo(w / 2 + 2.5, -7);
+        ctx.lineTo(w / 2 + 1.5, -5);
+        ctx.lineTo(w / 2 - 1.5, -5);
+        ctx.closePath();
+        ctx.fill();
+
+        // 🔥 АНИМИРОВАННЫЙ ОГОНЁК НА СОПЛЕ (когда стреляет или "готовится")
+        const timeSinceShot = Date.now() - tank.lastShotTime;
+        const isFiring = timeSinceShot < 500; // в первые 500мс после выстрела — сильное пламя
+        const isReady = timeSinceShot > 2500;  // когда кулдаун почти готов — тлеющий огонёк
+
+        if (isFiring || isReady) {
+            const flicker = Math.sin(this.time / 40) * 0.3 + 0.7;
+            const flameSize = isFiring ? 4 : 2;
+            const flameAlpha = isFiring ? 0.9 : 0.5;
+
+            // Свечение вокруг сопла
+            const glow = ctx.createRadialGradient(
+                w / 2, -8, 0,
+                w / 2, -8, flameSize * 2
+            );
+            glow.addColorStop(0, `rgba(255, 230, 100, ${flameAlpha * flicker})`);
+            glow.addColorStop(0.5, `rgba(255, 140, 0, ${flameAlpha * 0.6 * flicker})`);
+            glow.addColorStop(1, 'rgba(255, 60, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(w / 2, -8, flameSize * 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ядро огонька
+            ctx.fillStyle = `rgba(255, 220, 80, ${flameAlpha * flicker})`;
+            ctx.beginPath();
+            ctx.arc(w / 2, -8, flameSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Искры (исходят от сопла)
+            if (isFiring) {
+                for (let i = 0; i < 3; i++) {
+                    const sparkAngle = (this.time / 50 + i * 2) % 3 - 1.5;
+                    const sparkDist = 3 + Math.sin(this.time / 30 + i) * 2;
+                    const sx = w / 2 + Math.sin(sparkAngle) * sparkDist;
+                    const sy = -8 - Math.cos(sparkAngle) * sparkDist;
+                    ctx.fillStyle = `rgba(255, 200, 50, ${0.8 * flicker})`;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Индикатор уровня топлива (маленькая полоска сбоку башни)
+        const fuelPulse = Math.sin(this.time / 300) * 0.2 + 0.8;
+        ctx.fillStyle = `rgba(255, 150, 0, ${fuelPulse})`;
+        ctx.fillRect(w / 2 + 4, h / 2 - 2, 1, 4);
+    }
     // ========================================
     // === HP BAR (над танком) ===
     // ========================================

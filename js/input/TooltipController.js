@@ -25,8 +25,9 @@ export class TooltipController {
     _hitTest(mx, my) {
         const s = this.state;
         const hit = (obj) => mx >= obj.x && mx <= obj.x + obj.width &&
-                              my >= obj.y && my <= obj.y + obj.height;
+                            my >= obj.y && my <= obj.y + obj.height;
 
+        // 1. Бонусы (высший приоритет)
         for (const b of s.bonuses) {
             if (b.isActive && hit(b)) {
                 const sec = Math.ceil(Math.max(0, b.lifetime - (Date.now() - b.spawnTime)) / 1000);
@@ -37,6 +38,29 @@ export class TooltipController {
                 };
             }
         }
+
+        // 🆕 2. Материалы
+        const materialNames = {
+            brick: { emoji: '🧱', name: 'Кирпичный лом' },
+            fortified: { emoji: '🔲', name: 'Бетонный лом' },
+            steel: { emoji: '⬛', name: 'Металлический лом' }
+        };
+        for (const m of s.materials) {
+            if (m.isActive && hit(m)) {
+                const info = materialNames[m.type];
+                const sec = Math.ceil(Math.max(0, m.lifetime - (Date.now() - m.spawnTime)) / 1000);
+                return {
+                    emoji: info.emoji, title: info.name,
+                    stats: [
+                        { label: 'Исчезнет через', value: `${sec}с` },
+                        { label: 'Для блока нужно', value: '3 шт.' }
+                    ],
+                    desc: 'Наедьте танком, чтобы подобрать. ПКМ с 3+ в инвентаре — построить блок.'
+                };
+            }
+        }
+
+        // 3. Враги
         for (const e of s.enemies) {
             if (e.isActive && hit(e)) {
                 const t = ENEMY_TYPES[e.enemyTypeKey];
@@ -51,19 +75,25 @@ export class TooltipController {
                 };
             }
         }
+
+        // 4. Игрок
         if (s.player?.isActive && hit(s.player)) {
             return {
                 emoji: '🟢', title: 'Ваш танк',
                 stats: [
-                    { label: 'HP', value: `${s.player.hp}` },
+                    { label: 'HP', value: `${s.player.hp}/${s.player.maxHp}` },
                     { label: 'Жизни', value: `${s.lives}` }
                 ],
-                desc: 'Используйте стрелки для движения, пробел для стрельбы.'
+                desc: 'Стрелки — движение, Пробел/ЛКМ — стрельба.'
             };
         }
+
+        // 5. База
         if (s.base && !s.base.isDestroyed && hit(s.base)) {
             return { emoji: '🏠', title: s.base.displayName, stats: [], desc: s.base.description };
         }
+
+        // 6. Стены
         for (const w of s.walls) {
             if (w.hp > 0 && hit(w)) {
                 return {
@@ -73,8 +103,13 @@ export class TooltipController {
                 };
             }
         }
+
+        // 7. Кусты
         for (const b of s.bushes) if (hit(b)) return { emoji: '', title: b.displayName, stats: [], desc: b.description };
+
+        // 8. Вода
         for (const w of s.waters) if (hit(w)) return { emoji: '', title: w.displayName, stats: [], desc: w.description };
+
         return null;
     }
 

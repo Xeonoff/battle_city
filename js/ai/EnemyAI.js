@@ -1,55 +1,95 @@
-import { DIRECTIONS, TILE_SIZE } from '../config/constants.js';
+import { DIRECTIONS, TILE_SIZE, TANK_SIZE } from '../config/constants.js';
 import { rectsOverlap } from '../core/utils.js';
 import { pathfindingSystem } from '../main.js';
 
 export function chooseBestDirection(enemy, state) {
+    // Pathfinding даёт направление
     const pathDir = pathfindingSystem.getNextDirection(enemy.x, enemy.y, state);
 
     if (pathDir !== null) {
-        const testPos = getTestPosition(enemy, pathDir);
-        if (!hasCollision(enemy, testPos.x, testPos.y, state)) {
+        // 🆕 Проверяем весь путь к цели, не только конечную точку
+        if (canMoveAlongPath(enemy, pathDir, state)) {
             return pathDir;
         }
     }
 
+    // Fallback: utility-based AI
     return chooseByUtility(enemy, state);
 }
 
+/**
+ * 🆕 Проверяет, может ли танк проехать в направлении dir.
+ * Тестирует несколько точек вдоль пути (а не только цель).
+ */
+function canMoveAlongPath(enemy, dir, state) {
+    const step = TILE_SIZE;
+    let targetX = enemy.x, targetY = enemy.y;
+
+    switch (dir) {
+        case DIRECTIONS.UP: targetY -= step; break;
+        case DIRECTIONS.RIGHT: targetX += step; break;
+        case DIRECTIONS.DOWN: targetY += step; break;
+        case DIRECTIONS.LEFT: targetX -= step; break;
+    }
+
+    // Проверяем 4 точки вдоль пути
+    const steps = 4;
+    for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const testX = enemy.x + (targetX - enemy.x) * t;
+        const testY = enemy.y + (targetY - enemy.y) * t;
+
+        if (hasCollision(enemy, testX, testY, state)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function chooseByUtility(enemy, state) {
-    const lookahead = TILE_SIZE * 2;
+    // 🆕 Меньший lookahead — танк смотрит на 1 тайл вперёд, не на 2
+    const lookahead = TILE_SIZE;
     let bestDir = enemy.direction;
     let bestUtility = -Infinity;
 
     for (let dir = 0; dir < 4; dir++) {
-        let testX = enemy.x;
-        let testY = enemy.y;
+        let testX = enemy.x, testY = enemy.y;
         switch (dir) {
             case DIRECTIONS.UP: testY -= lookahead; break;
             case DIRECTIONS.RIGHT: testX += lookahead; break;
             case DIRECTIONS.DOWN: testY += lookahead; break;
             case DIRECTIONS.LEFT: testX -= lookahead; break;
         }
+
+        // 🆕 Проверяем весь путь
+        if (!canMoveAlongPathFull(enemy, testX, testY, state)) {
+            continue; // направление полностью заблокировано
+        }
+
         const utility = evaluateDirection(enemy, testX, testY, dir, state);
-        // 🆕 Уменьшенный шум — меньше случайных "затупов"
-        const noisy = utility + (Math.random() - 0.5) * 1.5;
+        const noisy = utility + (Math.random() - 0.5) * 1.0;
         if (noisy > bestUtility) {
             bestUtility = noisy;
             bestDir = dir;
         }
     }
+
+    // Если все направления заблокированы — остаёмся на месте
     return bestDir;
 }
 
-function getTestPosition(enemy, dir) {
-    let x = enemy.x, y = enemy.y;
-    const step = TILE_SIZE;
-    switch (dir) {
-        case DIRECTIONS.UP: y -= step; break;
-        case DIRECTIONS.RIGHT: x += step; break;
-        case DIRECTIONS.DOWN: y += step; break;
-        case DIRECTIONS.LEFT: x -= step; break;
+/**
+ * 🆕 Полная проверка пути от текущей позиции к (testX, testY).
+ */
+function canMoveAlongPathFull(enemy, testX, testY, state) {
+    const steps = 4;
+    for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = enemy.x + (testX - enemy.x) * t;
+        const y = enemy.y + (testY - enemy.y) * t;
+        if (hasCollision(enemy, x, y, state)) return false;
     }
-    return { x, y };
+    return true;
 }
 
 function hasCollision(enemy, testX, testY, state) {
@@ -69,26 +109,15 @@ function hasCollision(enemy, testX, testY, state) {
             return true;
         }
     }
-
     return false;
 }
 
 function evaluateDirection(enemy, testX, testY, dir, state) {
     const canvas = document.getElementById('gameCanvas');
-    testX = Math.max(TILE_SIZE, Math.min(canvas.width - TILE_SIZE - enemy.width, testX));
-    testY = Math.max(TILE_SIZE, Math.min(canvas.height - TILE_SIZE - enemy.height, testY));
+    testX = Math.max(1, Math.min(canvas.width - enemy.width - 1, testX));
+    testY = Math.max(1, Math.min(canvas.height - enemy.height - 1, testY));
 
     let utility = 0;
-
-    // Штраф за коллизию (жёсткий — это критично)
-    const testRect = { x: testX, y: testY, width: enemy.width, height: enemy.height };
-    const hasCol =
-        state.walls.some(w => w.hp > 0 && rectsOverlap(testRect, w.getRect())) ||
-        (state.base && !state.base.isDestroyed && rectsOverlap(testRect, state.base.getRect())) ||
-        state.waters.some(w => rectsOverlap(testRect, w.getRect())) ||
-        [state.player, ...state.enemies].filter(t => t && t !== enemy && t.isActive)
-            .some(o => rectsOverlap(testRect, { x: o.x, y: o.y, width: o.width, height: o.height }));
-    if (hasCol) utility -= 50; // 🆕 было -100
 
     const maxRSq = canvas.width * canvas.width + canvas.height * canvas.height;
     const cx = enemy.x + enemy.width / 2;
@@ -102,7 +131,7 @@ function evaluateDirection(enemy, testX, testY, dir, state) {
         const bcy = state.base.y + state.base.height / 2;
         const currDist = (cx - bcx) ** 2 + (cy - bcy) ** 2;
         const newDist = (newCx - bcx) ** 2 + (newCy - bcy) ** 2;
-        utility += ((currDist - newDist) / maxRSq) * 80;
+        utility += ((currDist - newDist) / maxRSq) * 100;
     }
 
     // Вторичная цель: игрок
@@ -111,39 +140,28 @@ function evaluateDirection(enemy, testX, testY, dir, state) {
         const py = state.player.y + state.player.height / 2;
         const currDist = (cx - px) ** 2 + (cy - py) ** 2;
         const newDist = (newCx - px) ** 2 + (newCy - py) ** 2;
-        utility += ((currDist - newDist) / maxRSq) * 10;
+        utility += ((currDist - newDist) / maxRSq) * 15;
 
-        const dx = px - cx;
-        const dy = py - cy;
+        // Бонус за направление на игрока
+        const dx = px - cx, dy = py - cy;
         let facing = false;
         if (dir === DIRECTIONS.UP && dy < -TILE_SIZE) facing = true;
         if (dir === DIRECTIONS.DOWN && dy > TILE_SIZE) facing = true;
         if (dir === DIRECTIONS.LEFT && dx < -TILE_SIZE) facing = true;
         if (dir === DIRECTIONS.RIGHT && dx > TILE_SIZE) facing = true;
-        if (facing) utility += 15;
+        if (facing) utility += 10;
     }
 
-    // 🆕 Плавные штрафы за близость к границам
-    // Зона штрафа: 1.5 тайла от края (вместо 3)
-    // Максимальный штраф на самом краю: -20 (вместо -60)
-    // Считаем в долях тайла (tile fractions)
-    const margin = TILE_SIZE * 0.5;
-    const maxPenalty = 20;
+    // 🆕 Минимальный штраф за близость к границам (0.3 тайла)
+    const margin = TILE_SIZE * 0.3;
+    const maxPenalty = 5;
     const edges = [newCx, canvas.width - newCx, newCy, canvas.height - newCy];
 
     for (const dist of edges) {
         if (dist < margin) {
-            // Доля от зоны штрафа: 0 на краю, 1 на границе зоны
             const tileFraction = 1 - (dist / margin);
-            // Плавный квадратичный штраф, ограниченный maxPenalty
             utility -= tileFraction * tileFraction * maxPenalty;
         }
-    }
-
-    // 🆕 Бонус за движение в свободном направлении (поощряем исследование)
-    // Если выбранное направление ведёт в зону где нет стен в радиусе 2 тайлов — небольшой плюс
-    if (!hasCol) {
-        utility += 2;
     }
 
     return utility;

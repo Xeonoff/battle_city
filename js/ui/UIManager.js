@@ -1,4 +1,5 @@
 import { LEVEL_MAPS } from '../config/levels.js';
+import { getLevelConfig } from '../config/levels.js';
 import { audioManager } from '../main.js';
 
 export class UIManager {
@@ -43,26 +44,19 @@ export class UIManager {
         this.els.muteBtn.textContent = muted ? '🔇 Звук' : '🔊 Звук';
         this.els.muteBtn.classList.toggle('off', muted);
     }
-    
+
     showGameOver(won, onNextLevel, onRestart) {
         const s = this.state;
         this.els.gameOver.classList.remove('win', 'level-up');
 
         if (won) {
-            const hasNext = s.level < LEVEL_MAPS.length;
-            if (hasNext) {
-                this.els.gameOverTitle.textContent = `УРОВЕНЬ ${s.level} ПРОЙДЕН!`;
-                this.els.gameOverMsg.textContent = `Следующий этап: ${LEVEL_MAPS[s.level].name}`;
-                this.els.gameOver.classList.add('level-up');
-                this.els.nextLevelBtn.style.display = 'inline-block';
-                this.els.nextLevelBtn.textContent = `▶ ${LEVEL_MAPS[s.level].name}`;
-                this.els.nextLevelBtn.onclick = onNextLevel;
-            } else {
-                this.els.gameOverTitle.textContent = '🏆 ПОБЕДА!';
-                this.els.gameOverMsg.textContent = `Все ${LEVEL_MAPS.length} уровней пройдены! Счёт: ${s.score}`;
-                this.els.gameOver.classList.add('win');
-                this.els.nextLevelBtn.style.display = 'none';
-            }
+            const config = getLevelConfig(s.level + 1);
+            this.els.gameOverTitle.textContent = `УРОВЕНЬ ${s.level} ПРОЙДЕН!`;
+            this.els.gameOverMsg.textContent = `Следующий этап: ${config.name}`;
+            this.els.gameOver.classList.add('level-up');
+            this.els.nextLevelBtn.style.display = 'inline-block';
+            this.els.nextLevelBtn.textContent = `▶ ${config.name}`;
+            this.els.nextLevelBtn.onclick = onNextLevel;
         } else {
             this.els.gameOverTitle.textContent = 'ИГРА ОКОНЧЕНА';
             this.els.gameOverMsg.textContent = `Счёт: ${s.score} | Уровень: ${s.level}`;

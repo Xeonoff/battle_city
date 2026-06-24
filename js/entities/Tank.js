@@ -224,7 +224,19 @@ export class Tank {
             ? this.baseBulletSpeed * 1.5
             : this.baseBulletSpeed;
 
-        state.bullets.push(new Bullet(bx, by, direction, this.isPlayer, speed, ricochet));
+        // 🆕 Определяем тип снаряда
+        let bulletType = 'normal';
+        if (this.isPlayer) {
+            if (state.playerBuffs.explosive.active) {
+                bulletType = 'heavy'; // 🆕 игрок с баффом "Взрывной" стреляет heavy
+            }
+        } else {
+            if (this.type === 'heavy') {
+                bulletType = 'heavy'; // 🆕 HEAVY враги стреляют heavy
+            }
+        }
+
+        state.bullets.push(new Bullet(bx, by, direction, this.isPlayer, speed, ricochet, bulletType));
     }
 
     takeDamage(amount = 1) {

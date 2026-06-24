@@ -1,6 +1,6 @@
 import { LLM_API_URL } from '../config/constants.js';
-import { LEVEL_MAPS } from '../config/levels.js';
 import { BONUS_TYPES } from '../config/bonusTypes.js';
+import { getLevelConfig } from '../config/levels.js';
 
 export class LLMService {
     constructor(state) {
@@ -16,15 +16,16 @@ export class LLMService {
         this.state.lastCommentTime = Date.now();
         if (!this.state.llmEnabled) return null;
 
-        const activeBuffs = Object.keys(this.state.playerBuffs)
-            .filter(k => this.state.playerBuffs[k].active)
+        const s = this.state;
+
+        const activeBuffs = Object.keys(s.playerBuffs)
+            .filter(k => s.playerBuffs[k].active)
             .map(k => BONUS_TYPES[k.toUpperCase()].displayName);
 
-        const s = this.state;
-        const lvl = LEVEL_MAPS[Math.min(s.level - 1, LEVEL_MAPS.length - 1)];
+        const config = getLevelConfig(s.level);
         const prompt = `Ты командир танкового подразделения в игре Battle City. Ты наблюдаешь за ходом битвы и даешь краткие, мотивирующие комментарии своему экипажу.
 Текущее состояние битвы:
-- Уровень: ${s.level}/${LEVEL_MAPS.length} (${lvl.name})
+- Уровень: ${s.level} (${config.name})
 - Уничтожено вражеских танков: ${s.enemyCount}/${s.maxEnemies}
 - Осталось врагов: ${s.maxEnemies - s.enemyCount}
 - Жизней у игрока: ${s.lives}

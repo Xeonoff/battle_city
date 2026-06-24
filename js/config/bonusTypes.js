@@ -19,6 +19,11 @@ export const BONUS_TYPES = Object.freeze({
         displayName: 'Звезда скорости',
         description: 'Ускорение танка и пуль на 15 секунд'
     },
+    EXPLOSIVE: { // 🆕
+        name: 'explosive', emoji: '💥', duration: 20000, color: '#FF5722',
+        displayName: 'Взрывные снаряды',
+        description: 'Снаряды наносят сплэш-урон по стенам и врагам в радиусе 1 блока'
+    },
     GRENADE: {
         name: 'grenade', emoji: '💣', duration: 0, color: '#F44336',
         displayName: 'Граната',

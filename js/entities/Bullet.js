@@ -153,6 +153,32 @@ export class Bullet {
             ctx.beginPath();
             ctx.arc(cx, cy, this.width * 0.5, 0, Math.PI * 2);
             ctx.stroke();
+        } else if (this.bulletType === 'heavy') {
+            // 🆕 Heavy пуля — тёмно-красная с огненным ореолом
+            const cx = this.x + this.width / 2;
+            const cy = this.y + this.height / 2;
+
+            // Оревок
+            const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, this.width * 2);
+            glow.addColorStop(0, 'rgba(255, 87, 34, 0.5)');
+            glow.addColorStop(0.6, 'rgba(255, 152, 0, 0.2)');
+            glow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, this.width * 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ядро
+            ctx.fillStyle = this.isPlayer ? '#FF5722' : '#D84315';
+            ctx.beginPath();
+            ctx.arc(cx, cy, this.width * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Блик
+            ctx.fillStyle = '#FFEB3B';
+            ctx.beginPath();
+            ctx.arc(cx - 1, cy - 1, this.width * 0.3, 0, Math.PI * 2);
+            ctx.fill();
         } else {
             ctx.fillStyle = this.isPlayer ? '#4FC3F7' : '#FFD740';
             ctx.fillRect(this.x, this.y, this.width, this.height);

@@ -47,7 +47,7 @@ export class CollisionSystem {
 
                     // 🆕 Heavy bullet splash урон по соседним стенам
                     if (bullet && bullet.bulletType === 'heavy') {
-                        this._applySplashDamageToWalls(hx, hy, TILE_SIZE, 1, wall);
+                        this._applySplashDamageToWalls(hx, hy, TILE_SIZE * 1.25, 1, wall);
                     }
                 },
                 base: () => {
@@ -65,9 +65,8 @@ export class CollisionSystem {
 
                     const killed = tank.takeDamage(1);
 
-                    // 🆕 Splash damage для тяжёлых танков (вражеских)
                     if (bullet.bulletType === 'heavy' && killed) {
-                        this._applySplashDamage(hx, hy, TILE_SIZE, 1);
+                        this._applySplashDamage(hx, hy, TILE_SIZE * 2, 1, tank);
                     }
 
                     if (killed) {
@@ -118,7 +117,7 @@ export class CollisionSystem {
         }
     }
 
-    _applySplashDamage(cx, cy, radius, damage) {
+    _applySplashDamage(cx, cy, radius, damage, sourceTank = null) {
         const splashRect = {
             x: cx - radius / 2,
             y: cy - radius / 2,
@@ -126,9 +125,10 @@ export class CollisionSystem {
             height: radius
         };
 
-        // Урон врагам в радиусе (кроме уже убитого)
+        // Урон врагам в радиусе
         this.state.enemies.forEach(enemy => {
             if (!enemy.isActive) return;
+            if (enemy === sourceTank) return; // не бьём повторно по инициатору
             const er = { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height };
             if (rectsOverlap(splashRect, er)) {
                 const killed = enemy.takeDamage(damage);
@@ -150,7 +150,7 @@ export class CollisionSystem {
             }
         });
 
-        // Урон игроку в радиусе
+        // Урон игроку в радиусе (только от вражеских пуль)
         if (this.state.player && this.state.player.isActive) {
             const pr = {
                 x: this.state.player.x, y: this.state.player.y,

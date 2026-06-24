@@ -109,6 +109,26 @@ export class TankRenderer {
             ctx.closePath();
             ctx.stroke();
         }
+
+        if (tank.isPlayer && state.playerBuffs.explosive.active) {
+            const pulse = Math.sin(this.time / 120) * 0.3 + 0.7;
+            ctx.strokeStyle = `rgba(255, 87, 34, ${0.6 * pulse})`;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            // Восьмиконечная "звезда взрыва"
+            for (let i = 0; i < 16; i++) {
+                const angle = (i * Math.PI) / 8 + this.time / 500;
+                const r = i % 2 === 0
+                    ? tank.width * 0.95
+                    : tank.width * 0.75;
+                const sx = cx + Math.cos(angle) * r;
+                const sy = cy + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(sx, sy);
+                else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
     }
 
     // ========================================

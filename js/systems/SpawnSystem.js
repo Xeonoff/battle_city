@@ -1,5 +1,5 @@
 import { TILE_SIZE, GRID_SIZE, DIRECTIONS } from '../config/constants.js';
-import { LEVEL_MAPS } from '../config/levels.js';
+import { getLevelConfig } from '../config/levels.js';
 import { Tank } from '../entities/Tank.js';
 import { rectsOverlap } from '../core/utils.js';
 
@@ -16,7 +16,7 @@ export class SpawnSystem {
     }
 
     _spawn() {
-        const levelData = LEVEL_MAPS[Math.min(this.state.level - 1, LEVEL_MAPS.length - 1)];
+        const levelData = getLevelConfig(this.state.level);
         const types = levelData.enemyTypes;
         const currentEnemies = this.state.enemies.length;
         const remaining = this.state.maxEnemies - this.state.enemyCount;

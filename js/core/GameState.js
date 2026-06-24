@@ -1,5 +1,5 @@
 import { PLAYER_LIVES, PLAYER_HP } from '../config/constants.js';
-import { LEVEL_MAPS } from '../config/levels.js';
+import { getLevelConfig } from '../config/levels.js'; // 🆕 вместо LEVEL_MAPS
 
 export class GameState {
     constructor() {
@@ -16,7 +16,6 @@ export class GameState {
         this.bonuses = [];
         this.base = null;
 
-        // 🆕 Новые сущности
         this.materials = [];
         this.flameStreams = [];
 
@@ -25,7 +24,7 @@ export class GameState {
         this.playerHp = PLAYER_HP;
         this.level = 1;
         this.enemyCount = 0;
-        this.maxEnemies = LEVEL_MAPS[0].maxEnemies;
+        this.maxEnemies = getLevelConfig(1).maxEnemies;
 
         this.gameOver = false;
         this.gameWon = false;
@@ -39,10 +38,10 @@ export class GameState {
             shield: { active: false, endTime: 0, duration: 0 },
             triple: { active: false, endTime: 0, duration: 0 },
             ricochet: { active: false, endTime: 0, duration: 0 },
-            star: { active: false, endTime: 0, duration: 0 }
+            star: { active: false, endTime: 0, duration: 0 },
+            explosive: { active: false, endTime: 0, duration: 0 }
         };
 
-        // 🆕 Инвентарь (ссылка устанавливается в main.js)
         this.inventory = null;
     }
 
@@ -57,6 +56,5 @@ export class GameState {
         this.level = prevState.level + 1;
         this.llmEnabled = prevState.llmEnabled;
         this.playerBuffs = { ...prevState.playerBuffs };
-        this.maxEnemies = LEVEL_MAPS[Math.min(this.level - 1, LEVEL_MAPS.length - 1)].maxEnemies;
     }
 }

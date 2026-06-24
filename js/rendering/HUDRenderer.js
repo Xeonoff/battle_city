@@ -87,7 +87,8 @@ export class HUDRenderer {
             shield: { emoji: '🛡️', name: 'Щит' },
             triple: { emoji: '⚡', name: 'Тройной' },
             ricochet: { emoji: '🔄', name: 'Рикошет' },
-            star: { emoji: '⭐', name: 'Скорость' }
+            star: { emoji: '⭐', name: 'Скорость' },
+            explosive: { emoji: '💥', name: 'Взрывной' }
         };
 
         const active = Object.entries(state.playerBuffs)

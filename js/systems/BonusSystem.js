@@ -36,6 +36,7 @@ export function applyBonusEffect(bonus, state, particles) {
         case 'triple':
         case 'ricochet':
         case 'star':
+        case 'explosive':   
             state.playerBuffs[t.name].active = true;
             state.playerBuffs[t.name].endTime = now + t.duration;
             state.playerBuffs[t.name].duration = t.duration;

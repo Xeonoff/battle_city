@@ -26,6 +26,52 @@ export class TooltipController {
         const s = this.state;
         const hit = (obj) => mx >= obj.x && mx <= obj.x + obj.width &&
                             my >= obj.y && my <= obj.y + obj.height;
+        
+        if (s.inventory) {
+            const slots = s.inventory.getSlots();
+            const canvas = document.getElementById('gameCanvas');
+
+            for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                const rect = this._getInventorySlotRect(i, canvas);
+
+                if (mx >= rect.x && mx <= rect.x + rect.width &&
+                    my >= rect.y && my <= rect.y + rect.height) {
+
+                    // Активный слот?
+                    const isActive = i === s.inventory.getActiveIndex();
+
+                    if (slot.type && slot.count > 0) {
+                        // Слот с материалом
+                        const materialInfo = this._getMaterialInfo(slot.type);
+                        const canPlace = slot.count >= 3;
+
+                        return {
+                            emoji: materialInfo.emoji,
+                            title: materialInfo.name,
+                            stats: [
+                                { label: 'Количество', value: `${slot.count} шт.` },
+                                { label: 'Для блока', value: canPlace ? '✅ готово' : `❌ нужно ${3 - slot.count}` },
+                                { label: 'Слот', value: isActive ? '🎯 активен' : `нажми ${i + 1}` }
+                            ],
+                            desc: canPlace
+                                ? 'ПКМ на карте — построить блок'
+                                : 'Собери ещё материал или выбери другой слот'
+                        };
+                    } else {
+                        // Пустой слот
+                        return {
+                            emoji: '📦',
+                            title: `Слот ${i + 1}`,
+                            stats: [
+                                { label: 'Статус', value: isActive ? '🎯 активен' : 'пусто' }
+                            ],
+                            desc: 'Подбери материал на карте, чтобы заполнить'
+                        };
+                    }
+                }
+            }
+        }
 
         // 1. Бонусы (высший приоритет)
         for (const b of s.bonuses) {
@@ -113,6 +159,27 @@ export class TooltipController {
         return null;
     }
 
+    _getInventorySlotRect(index, canvas) {
+        const slotSize = 34;
+        const gap = 2;
+        const padding = 6;
+        const totalWidth = 8 * slotSize + 7 * gap;
+        const startX = canvas.width - totalWidth - padding;
+        const startY = padding;
+        const x = startX + index * (slotSize + gap);
+        return { x, y: startY, width: slotSize, height: slotSize };
+    }
+
+
+    _getMaterialInfo(type) {
+        const info = {
+            brick: { emoji: '🧱', name: 'Кирпичный лом' },
+            fortified: { emoji: '🔲', name: 'Бетонный лом' },
+            steel: { emoji: '⬛', name: 'Металлический лом' }
+        };
+        return info[type] || { emoji: '📦', name: 'Материал' };
+    }
+    
     _show(info, mx, my) {
         let html = `<div class="tooltip-header">`;
         if (info.emoji) html += `<span class="tooltip-emoji">${info.emoji}</span>`;

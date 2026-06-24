@@ -232,8 +232,8 @@ class Game {
         this.ui.hideGameOver();
         this._loadLevel();
         setTimeout(() => {
-            const lvl = LEVEL_MAPS[Math.min(this.state.level - 1, LEVEL_MAPS.length - 1)];
-            this.ui.showComment(`Уровень ${this.state.level}: ${lvl.name}. Будьте осторожны!`);
+            const config = this.levelSystem.currentLevelConfig;
+            this.ui.showComment(`Уровень ${this.state.level}: ${config.name}. Будьте осторожны!`);
         }, 500);
     }
 }
